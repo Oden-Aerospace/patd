@@ -21,6 +21,7 @@ WINDOW_POSITIONS = REPO_ROOT / "Output" / "preferences" / "X-Plane Window Positi
 SCREEN_RES_PREFS = REPO_ROOT / "Output" / "preferences" / "X-Plane Screen Res.prf"
 ANALYTICS_PREFS = REPO_ROOT / "Output" / "preferences" / "X-Plane Analytics.prf"
 MISC_PREFS = REPO_ROOT / "Output" / "preferences" / "Miscellaneous.prf"
+SERVER_LIST_PREFS = REPO_ROOT / "Output" / "preferences" / "server_list_12.txt"
 DEVICE_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "DeviceMapping.ini"
 COMMAND_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "CommandMapping.ini"
 MAIN_LOG = REPO_ROOT / "Log.txt"
@@ -49,6 +50,16 @@ def parse_resolution(value: str) -> tuple[int, int]:
 
 def load_spec() -> dict:
     return json.loads(SPEC_PATH.read_text(encoding="utf-8"))
+
+
+def current_xplane_version_from_log() -> tuple[str, str] | None:
+    first_line = read_text(MAIN_LOG).splitlines()
+    if not first_line:
+        return None
+    match = re.search(r"Log\.txt for (X-Plane\s+[^\(]+) \(build\s+(\d+)", first_line[0])
+    if not match:
+        return None
+    return match.group(1).strip(), match.group(2)
 
 
 def collect_windows_displays() -> list[dict]:
@@ -388,6 +399,9 @@ def sanitize_startup_prompts(run_dir: Path, output_name: str = "startup_prompt_s
         "removed_unsafe_markers": 0,
         "warn_update_before": None,
         "warn_update_after": None,
+        "server_list_backup": None,
+        "server_list_version_before": None,
+        "server_list_version_after": None,
         "misc_backup": None,
         "default_situation_before": None,
         "default_situation_cleared": False,
@@ -415,6 +429,44 @@ def sanitize_startup_prompts(run_dir: Path, output_name: str = "startup_prompt_s
             analytics_text = re.sub(r"^(_warn_update\s+)\S+\s*$", r"\g<1>0", analytics_text, flags=re.MULTILINE)
             ANALYTICS_PREFS.write_text(analytics_text, encoding="utf-8")
             result["warn_update_after"] = "0"
+
+    if SERVER_LIST_PREFS.exists():
+        server_list_backup = artifacts_dir / SERVER_LIST_PREFS.name
+        shutil.copy2(SERVER_LIST_PREFS, server_list_backup)
+        result["server_list_backup"] = str(server_list_backup)
+        server_list_text = read_text(SERVER_LIST_PREFS)
+        current_version = current_xplane_version_from_log()
+        if current_version is not None:
+            version_name, build_number = current_version
+            final_version_match = re.search(r"^FINAL_VERSION\s+(\d+)\s*$", server_list_text, flags=re.MULTILINE)
+            if final_version_match:
+                result["server_list_version_before"] = final_version_match.group(1)
+            replacements = {
+                r"^(BETA\s+).+$": rf"\g<1>{version_name}",
+                r"^(FINAL\s+).+$": rf"\g<1>{version_name}",
+                r"^(FULL\s+).+$": rf"\g<1>{version_name}",
+                r"^(BETA_VERSION\s+)\d+\s*$": rf"\g<1>{build_number}",
+                r"^(FINAL_VERSION\s+)\d+\s*$": rf"\g<1>{build_number}",
+            }
+            for pattern, replacement in replacements.items():
+                server_list_text = re.sub(pattern, replacement, server_list_text, flags=re.MULTILINE)
+
+            def replace_branch(match: re.Match[str]) -> str:
+                return (
+                    f"BRANCH {match.group(1)}\n"
+                    f"BRANCH_BUILD_NUMBER {build_number}\n"
+                    f"BRANCH_NAME {version_name}\n"
+                    f"BRANCH_PATH {version_name}"
+                )
+
+            server_list_text = re.sub(
+                r"BRANCH (Final|Beta)\nBRANCH_BUILD_NUMBER \d+\nBRANCH_NAME .+\nBRANCH_PATH .+",
+                replace_branch,
+                server_list_text,
+                flags=re.MULTILINE,
+            )
+            SERVER_LIST_PREFS.write_text(server_list_text, encoding="utf-8")
+            result["server_list_version_after"] = build_number
 
     if MISC_PREFS.exists():
         misc_backup = artifacts_dir / MISC_PREFS.name
