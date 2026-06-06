@@ -17,7 +17,6 @@ networking_disclose_iphone 0
 networking_disclose_instructor 0
 atc_cmd_window_splitter 133.000000
 networking_disclose_external_visuals 0
-default_situation Output/situations/Cessna Skyhawk (G1000) Situation 49.sit
 P monitor_10 _offsets 0
 P monitor_10 _visuals 0
 P monitor_1 _offsets 1

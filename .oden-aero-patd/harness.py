@@ -18,6 +18,9 @@ SPEC_PATH = PATD_DIR / "specs" / "patd_display_spec.json"
 RUNS_DIR = PATD_DIR / "runs"
 DEFAULT_XPLANE_EXE = REPO_ROOT / "X-Plane.exe"
 WINDOW_POSITIONS = REPO_ROOT / "Output" / "preferences" / "X-Plane Window Positions.prf"
+SCREEN_RES_PREFS = REPO_ROOT / "Output" / "preferences" / "X-Plane Screen Res.prf"
+ANALYTICS_PREFS = REPO_ROOT / "Output" / "preferences" / "X-Plane Analytics.prf"
+MISC_PREFS = REPO_ROOT / "Output" / "preferences" / "Miscellaneous.prf"
 DEVICE_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "DeviceMapping.ini"
 COMMAND_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "CommandMapping.ini"
 MAIN_LOG = REPO_ROOT / "Log.txt"
@@ -376,6 +379,83 @@ def apply_safe_window_config(spec: dict, window_state: dict, run_dir: Path) -> d
     return result
 
 
+def sanitize_startup_prompts(run_dir: Path, output_name: str = "startup_prompt_sanitization.json") -> dict:
+    artifacts_dir = run_dir / "artifacts"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    result = {
+        "screen_res_backup": None,
+        "analytics_backup": None,
+        "removed_unsafe_markers": 0,
+        "warn_update_before": None,
+        "warn_update_after": None,
+        "misc_backup": None,
+        "default_situation_before": None,
+        "default_situation_cleared": False,
+    }
+
+    if SCREEN_RES_PREFS.exists():
+        screen_res_backup = artifacts_dir / SCREEN_RES_PREFS.name
+        shutil.copy2(SCREEN_RES_PREFS, screen_res_backup)
+        result["screen_res_backup"] = str(screen_res_backup)
+        screen_res_text = read_text(SCREEN_RES_PREFS)
+        unsafe_count = len(re.findall(r"^UNSAFE\s*$", screen_res_text, flags=re.MULTILINE))
+        if unsafe_count:
+            sanitized_text = re.sub(r"^UNSAFE\s*$\n?", "", screen_res_text, flags=re.MULTILINE)
+            SCREEN_RES_PREFS.write_text(sanitized_text, encoding="utf-8")
+        result["removed_unsafe_markers"] = unsafe_count
+
+    if ANALYTICS_PREFS.exists():
+        analytics_backup = artifacts_dir / ANALYTICS_PREFS.name
+        shutil.copy2(ANALYTICS_PREFS, analytics_backup)
+        result["analytics_backup"] = str(analytics_backup)
+        analytics_text = read_text(ANALYTICS_PREFS)
+        warn_match = re.search(r"^_warn_update\s+(\S+)\s*$", analytics_text, flags=re.MULTILINE)
+        if warn_match:
+            result["warn_update_before"] = warn_match.group(1)
+            analytics_text = re.sub(r"^(_warn_update\s+)\S+\s*$", r"\g<1>0", analytics_text, flags=re.MULTILINE)
+            ANALYTICS_PREFS.write_text(analytics_text, encoding="utf-8")
+            result["warn_update_after"] = "0"
+
+    if MISC_PREFS.exists():
+        misc_backup = artifacts_dir / MISC_PREFS.name
+        shutil.copy2(MISC_PREFS, misc_backup)
+        result["misc_backup"] = str(misc_backup)
+        misc_text = read_text(MISC_PREFS)
+        default_situation_match = re.search(r"^default_situation\s+(.+)\s*$", misc_text, flags=re.MULTILINE)
+        if default_situation_match:
+            result["default_situation_before"] = default_situation_match.group(1)
+            misc_text = re.sub(r"^default_situation\s+.+\n?", "", misc_text, flags=re.MULTILINE)
+            MISC_PREFS.write_text(misc_text, encoding="utf-8")
+            result["default_situation_cleared"] = True
+
+    write_json(run_dir / output_name, result)
+    return result
+
+
+def ensure_xplane_not_running() -> dict:
+    command = (
+        "$proc = Get-Process -Name 'X-Plane' -ErrorAction SilentlyContinue; "
+        "if ($proc) { "
+        "  $ids = @($proc | ForEach-Object { $_.Id }); "
+        "  $proc | Stop-Process -Force; "
+        "  Start-Sleep -Milliseconds 500; "
+        "  $remaining = Get-Process -Name 'X-Plane' -ErrorAction SilentlyContinue; "
+        "  [pscustomobject]@{ found = $true; killed_ids = $ids; still_running = [bool]$remaining } | ConvertTo-Json -Compress "
+        "} else { "
+        "  [pscustomobject]@{ found = $false; killed_ids = @(); still_running = $false } | ConvertTo-Json -Compress "
+        "}"
+    )
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-Command", command],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return {"found": False, "killed_ids": [], "still_running": False, "error": result.stderr.strip()}
+    return json.loads(result.stdout)
+
+
 def copy_if_exists(source: Path, destination: Path) -> None:
     if source.exists():
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -524,8 +604,18 @@ def command_snapshot(_: argparse.Namespace) -> int:
 def command_run(args: argparse.Namespace) -> int:
     run_dir = RUNS_DIR / utc_stamp()
     run_dir.mkdir(parents=True, exist_ok=True)
+    state: dict = {"timestamp": utc_stamp()}
+    state["xplane_process_cleanup"] = ensure_xplane_not_running()
+    startup_prompt_result = sanitize_startup_prompts(run_dir)
     launch_result = launch_xplane(Path(args.xplane_exe), args.duration, args.leave_running)
-    state = snapshot(run_dir)
+    state.update(snapshot(run_dir))
+    state["startup_prompt_sanitization"] = startup_prompt_result
+    if not args.leave_running:
+        state["post_run_prompt_cleanup"] = sanitize_startup_prompts(
+            run_dir,
+            output_name="post_run_prompt_cleanup.json",
+        )
+    write_json(run_dir / "snapshot.json", state)
     write_report(run_dir, state, launch_result=launch_result)
     print(f"Run complete: {run_dir}")
     return 0
