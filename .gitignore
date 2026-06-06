@@ -1,0 +1,52 @@
+# X-Plane 12 config-only repository
+# Default: ignore everything
+*
+
+# Always keep git metadata files in repo
+!.gitignore
+!README.md
+
+# Scenery load order
+!Custom Scenery/
+!Custom Scenery/scenery_packs.ini
+
+# Core X-Plane preferences (text-based)
+!Output/
+!Output/preferences/
+!Output/preferences/Freeflight.prf
+!Output/preferences/Miscellaneous.prf
+!Output/preferences/X-Plane Calibration.prf
+!Output/preferences/X-Plane Joystick Settings.prf
+!Output/preferences/X-Plane Keys.prf
+!Output/preferences/X-Plane Screen Res.prf
+!Output/preferences/X-Plane.prf
+
+# Optional plugin mappings/config
+!Resources/
+!Resources/plugins/
+!Resources/plugins/AFC_Bridge/
+!Resources/plugins/AFC_Bridge/honeycomb_profiles/
+!Resources/plugins/AFC_Bridge/honeycomb_profiles/Default_Throttle.json
+!Resources/plugins/AFC_Bridge/win_x64/
+!Resources/plugins/AFC_Bridge/win_x64/BFC_Throttle_Config.json
+!Resources/plugins/RealSimGear/
+!Resources/plugins/RealSimGear/CommandMapping.ini
+!Resources/plugins/RealSimGear/DeviceMapping.ini
+
+# Safety: never commit logs, installers, scenery, aircraft, executables, archives
+*.log
+*.exe
+*.dll
+*.zip
+*.7z
+*.rar
+*.dmg
+*.pkg
+*.obj
+*.acf
+*.afl
+*.wav
+*.png
+*.jpg
+*.jpeg
+*.dds

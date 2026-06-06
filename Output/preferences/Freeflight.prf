@@ -1,0 +1,101 @@
+I
+1100 Version
+_default_to_ramps 1
+_num_other_aircraft 0
+_start_type 10
+_track_system_time 0
+_airport KRIC
+_track_system_date_time 0
+_last_start {"ramp_start":{"airport":"KRIC","ramp":"East Side GA"}}
+_other_aircraft {"ai_aircraft":null}
+
+_time {"local_time":{"day_of_year":17,"latitude":37.509210453779303,"longitude":-77.313754123465813,"time_in_24_hours":15.107619285583496}}
+_gmt_offset 0
+_date 80
+_aircraft Aircraft/X-Aviation/RSG DA40NG/DA40NG.acf
+_wxr_def ,var_rand_space_pct=0.00,var_deft_change_enum=3,var_rwx_is_sim_time=1,var_vis_sm=40.00,var_vis_alt_lo_ft=5000.00,var_vis_alt_hi_ft=15000.00,var_ISA_offset_C=0.00,var_SLP_pas=101355.18,var_QNH_ele=50.60,var_precip_rat=0.00,var_cld_typ_enum0=2,var_cld_cov0=0.00,var_tops_msl_ft0=11640.00,var_bases_msl_ft0=10000.00,var_cld_typ_enum1=2,var_cld_cov1=0.00,var_tops_msl_ft1=21640.00,var_bases_msl_ft1=20000.00,var_cld_typ_enum2=2,var_cld_cov2=0.00,var_tops_msl_ft2=31640.00,var_bases_msl_ft2=30000.00,var_wind_alt_msl_ft0=3928.57,var_wind_alt_msl_ft1=7857.14,var_wind_alt_msl_ft2=11785.71,var_wind_alt_msl_ft3=15714.29,var_wind_alt_msl_ft4=19642.86,var_wind_alt_msl_ft5=23571.43,var_wind_alt_msl_ft6=27500.00,var_wind_alt_msl_ft7=31428.57,var_wind_alt_msl_ft8=35357.14,var_wind_alt_msl_ft9=39285.71,var_wind_alt_msl_ft10=43214.29,var_wind_alt_msl_ft11=47142.86,var_wind_alt_msl_ft12=51071.43,var_wind_spd_kt0=-1.00,var_wind_spd_kt1=-1.00,var_wind_spd_kt2=-1.00,var_wind_spd_kt3=-1.00,var_wind_spd_kt4=-1.00,var_wind_spd_kt5=-1.00,var_wind_spd_kt6=-1.00,var_wind_spd_kt7=-1.00,var_wind_spd_kt8=-1.00,var_wind_spd_kt9=-1.00,var_wind_spd_kt10=-1.00,var_wind_spd_kt11=-1.00,var_wind_spd_kt12=-1.00,var_wind_dir_true0=0.00,var_wind_dir_true1=0.00,var_wind_dir_true2=0.00,var_wind_dir_true3=0.00,var_wind_dir_true4=0.00,var_wind_dir_true5=0.00,var_wind_dir_true6=0.00,var_wind_dir_true7=0.00,var_wind_dir_true8=0.00,var_wind_dir_true9=0.00,var_wind_dir_true10=0.00,var_wind_dir_true11=0.00,var_wind_dir_true12=0.00,var_wind_inc_kt0=0.00,var_wind_inc_kt1=0.00,var_wind_inc_kt2=0.00,var_wind_inc_kt3=0.00,var_wind_inc_kt4=0.00,var_wind_inc_kt5=0.00,var_wind_inc_kt6=0.00,var_wind_inc_kt7=0.00,var_wind_inc_kt8=0.00,var_wind_inc_kt9=0.00,var_wind_inc_kt10=0.00,var_wind_inc_kt11=0.00,var_wind_inc_kt12=0.00,var_wind_shr_deg0=0.00,var_wind_shr_deg1=0.00,var_wind_shr_deg2=0.00,var_wind_shr_deg3=0.00,var_wind_shr_deg4=0.00,var_wind_shr_deg5=0.00,var_wind_shr_deg6=0.00,var_wind_shr_deg7=0.00,var_wind_shr_deg8=0.00,var_wind_shr_deg9=0.00,var_wind_shr_deg10=0.00,var_wind_shr_deg11=0.00,var_wind_shr_deg12=0.00,var_CAT_rat0=0.00,var_CAT_rat1=0.00,var_CAT_rat2=0.00,var_CAT_rat3=0.00,var_CAT_rat4=0.00,var_CAT_rat5=0.00,var_CAT_rat6=0.00,var_CAT_rat7=0.00,var_CAT_rat8=0.00,var_CAT_rat9=0.00,var_CAT_rat10=0.00,var_CAT_rat11=0.00,var_CAT_rat12=0.00,var_therm_vvi_fpm=0.00,var_wave_height_ft=3.00,var_wave_dir_deg=270.00,var_ter_eff_UI=0
+P _loads_crc32 _AircraftXAviationRSGDA40NGDA40NGacf 897771087
+P _loads_crc32 _AircraftOdenAerospaceOdenAerospaceCessna172SPCessna172SPG1000acf 838785634
+P _loads_crc32 _AircraftLaminarResearchGrummanF14TomcatF14Dacf 4014558455
+P _loads_crc32 _AircraftLaminarResearchBETATechnologiesAlia250ALIA250acf 1450641234
+P _loads_crc32 _AircraftLaminarResearchCessna172SPCessna172SPG1000acf 838785634
+P _loads_crc32 _AircraftXAviationCessna172SPG5Cessna172SPG5acf 3673413351
+P _rwy_or_ramp KRIC 13
+P _rwy_or_ramp LOWS 1
+P _rwy_or_ramp KPDX 0_1
+P _tks _AircraftLaminarResearchCessna172SPCessna172SPG1000acf 0.0
+P _tks _AircraftXAviationCessna172SPG5Cessna172SPG5acf 0.0
+P _oxy _AircraftLaminarResearchCessna172SPCessna172SPG1000acf 1800
+P _oxy _AircraftXAviationCessna172SPG5Cessna172SPG5acf 1800
+P _weight_and_balance _AircraftXAviationRSGDA40NGDA40NGacf {"weight":{"deice_fluid_in_liters":0.0,"deice_holdover_time_in_minutes":0.0,"fueltank_weight_in_kilograms":[29.588958740234375,29.842502593994141,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"oxygen_pressure_in_millibars":124034.8046875,"payload_weight_in_kilograms":[81.646629333496094,72.574775695800781,null,null,18.143693923950195,6.8038854598999023]}}
+P _weight_and_balance _AircraftOdenAerospaceOdenAerospaceCessna172SPCessna172SPG1000acf {"weight":{"deice_fluid_in_liters":0.0,"deice_holdover_time_in_minutes":0.0,"fueltank_weight_in_kilograms":[79.378692626953125,79.378692626953125,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"oxygen_pressure_in_millibars":0.0,"payload_weight_in_kilograms":[41.788509368896484,41.788509368896484,34.190597534179688,34.190597534179688,22.793731689453125,9.4973878860473633]}}
+P _weight_and_balance _AircraftLaminarResearchGrummanF14TomcatF14Dacf {"weight":{"deice_fluid_in_liters":0.0,"deice_holdover_time_in_minutes":0.0,"external_fueltank_weight_in_kilograms":[816.46649169921875,816.46649169921875],"fueltank_weight_in_kilograms":[646.6414794921875,418.84732055664062,271.88336181640625,69.807884216308594,293.927978515625,69.807884216308594,999.35516357421875,451.91424560546875,451.91424560546875],"oxygen_pressure_in_millibars":124105.65625,"payload_weight_in_kilograms":[102.05831146240234,102.05831146240234]}}
+P _weight_and_balance _AircraftLaminarResearchBETATechnologiesAlia250ALIA250acf {"weight":{"deice_fluid_in_liters":0.0,"deice_holdover_time_in_minutes":0.0,"fueltank_weight_in_kilograms":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"oxygen_pressure_in_millibars":0.0,"payload_weight_in_kilograms":[70.771797180175781,70.771797180175781,141.54359436035156]}}
+P _weight_and_balance _AircraftLaminarResearchCessna172SPCessna172SPG1000acf {"weight":{"deice_fluid_in_liters":0.0,"deice_holdover_time_in_minutes":0.0,"fueltank_weight_in_kilograms":[49.943431854248047,49.943431854248047,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"oxygen_pressure_in_millibars":0.0,"payload_weight_in_kilograms":[82.800773620605469,57.874931335449219,47.352218627929688,47.352218627929688,31.568145751953125,0.45359241962432861]}}
+P _livery _AircraftOdenAerospaceOdenAerospaceCessna172SPCessna172SPseaplaneacf Default
+P _livery _AircraftOdenAerospaceOdenAerospaceCessna172SPCessna172SPG1000acf Default
+P _livery _AircraftOdenAerospaceOdenAerospaceCessna172SPCessna172SPacf Default
+P _livery _AircraftLaminarResearchOdenAerospaceCessna172SPCessna172SPseaplaneacf Default
+P _livery _AircraftLaminarResearchOdenAerospaceCessna172SPCessna172SPG1000acf Default
+P _livery _AircraftLaminarResearchOdenAerospaceCessna172SPCessna172SPacf Default
+P _livery _AircraftXAviationRSGDA40NGDA40NGacf Default
+P _livery _AircraftXAviationCessna172SPG5Cessna172SPG5acf Default
+P _livery _AircraftLaminarResearchBETATechnologiesAlia250ALIA250acf Default
+P _livery _AircraftLaminarResearchAeroWorksAerolite103Aerolite103acf Default
+P _livery _AircraftLaminarResearchCessna172SPCessna172SPseaplaneacf Default
+P _livery _AircraftLaminarResearchMcDonnellDouglasF4PhantomIIF4acf Default
+P _livery _AircraftLaminarResearchGrummanF14TomcatF14Dacf Default
+P _livery _AircraftLaminarResearchSikorskyS76S76Cacf Default
+P _livery _AircraftLaminarResearchRobinsonR22BetaIIRobinsonR22BetaIImarineracf Default
+P _livery _AircraftLaminarResearchRobinsonR22BetaIIRobinsonR22BetaIIacf Default
+P _livery _AircraftLaminarResearchSchleicherASK21ASK21acf Default
+P _livery _AircraftLaminarResearchVansAircraftRV10RV10acf Default
+P _livery _AircraftLaminarResearchStinsonL5SentinelL5Sentinelacf Default
+P _livery _AircraftLaminarResearchPiperPA18SuperCubPA18150acf Default
+P _livery _AircraftLaminarResearchLancairEvolutionN844Xacf Default
+P _livery _AircraftLaminarResearchCirrusVisionSF50CirrusSF50acf Default
+P _livery _AircraftLaminarResearchCessna172SPCessna172SPG1000acf Default
+P _livery _AircraftLaminarResearchCessna172SPCessna172SPacf Default
+P _livery _AircraftLaminarResearchCessnaCitationXCessnaCitationXacf Default
+P _livery _AircraftLaminarResearchBeechcraftKingAirC90BC90Bacf Default
+P _livery _AircraftLaminarResearchBeechcraftBaron58Baron58acf Default
+P _livery _AircraftLaminarResearchMcDonnellDouglasMD82MD80acf Default
+P _livery _AircraftLaminarResearchBoeing737800b738acf American
+P _livery _AircraftLaminarResearchAirbusA330300A330acf Lufthansa D-AIKN
+P _livery _AircraftLaminarResearchCirrusSR22CirrusSR22acf Default
+P _start_is_rwy KRIC 0
+P _start_is_rwy LOWS 0
+P _start_is_rwy KPDX 1
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_12 chaff.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_11 flare.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_10 gun-M61A2-20mm-F14F15F16F18F22.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_9 F-14D_drop_tank_R.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_8 F-14D_drop_tank_L.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_7 AIM_54_Phoenix.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_6 AIM_54_Phoenix.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_5 AIM_54_Phoenix.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_4 AIM_54_Phoenix.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_3 AIM_9M_Sidewinder.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_2 AIM_9M_Sidewinder.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_1 AIM_7M_Sparrow.wpn
+P _weapon __AircraftLaminarResearchGrummanF14TomcatF14Dacf_0 AIM_7M_Sparrow.wpn
+P _holdover _AircraftLaminarResearchCessna172SPCessna172SPG1000acf 0.0
+P _holdover _AircraftXAviationCessna172SPG5Cessna172SPG5acf 0.0
+P _timestamp _AircraftXAviationRSGDA40NGDA40NGacf 1727032448.000000
+P _timestamp _AircraftOdenAerospaceOdenAerospaceCessna172SPCessna172SPG1000acf 1757537536.000000
+P _timestamp _AircraftLaminarResearchGrummanF14TomcatF14Dacf 1757537792.000000
+P _timestamp _AircraftLaminarResearchBETATechnologiesAlia250ALIA250acf 1768764928.000000
+P _timestamp _AircraftLaminarResearchCessna172SPCessna172SPG1000acf 1757537536.000000
+P _timestamp _AircraftXAviationCessna172SPG5Cessna172SPG5acf 1681915264.000000
+P _payload_station __AircraftLaminarResearchCessna172SPCessna172SPG1000acf_5 1.000000
+P _payload_station __AircraftLaminarResearchCessna172SPCessna172SPG1000acf_4 69.595840
+P _payload_station __AircraftLaminarResearchCessna172SPCessna172SPG1000acf_3 104.393761
+P _payload_station __AircraftLaminarResearchCessna172SPCessna172SPG1000acf_2 104.393761
+P _payload_station __AircraftLaminarResearchCessna172SPCessna172SPG1000acf_1 127.592369
+P _payload_station __AircraftLaminarResearchCessna172SPCessna172SPG1000acf_0 182.544434
+P _payload_station __AircraftXAviationCessna172SPG5Cessna172SPG5acf_5 0.000000
+P _payload_station __AircraftXAviationCessna172SPG5Cessna172SPG5acf_4 72.000015
+P _payload_station __AircraftXAviationCessna172SPG5Cessna172SPG5acf_3 108.000031
+P _payload_station __AircraftXAviationCessna172SPG5Cessna172SPG5acf_2 108.000031
+P _payload_station __AircraftXAviationCessna172SPG5Cessna172SPG5acf_1 132.000031
+P _payload_station __AircraftXAviationCessna172SPG5Cessna172SPG5acf_0 188.850403
