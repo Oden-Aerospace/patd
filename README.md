@@ -1,5 +1,7 @@
 # X-Plane 12 Config Sync
 
+Personal Aviation Training Device (PATD) configuration snapshot for X-Plane 12.
+
 This repository is intentionally restricted to small, text-based configuration files.
 
 ## What is tracked
