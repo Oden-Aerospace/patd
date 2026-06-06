@@ -101,7 +101,14 @@ The exact reconfiguration path still needs to be pinned down:
 - The harness now sanitizes startup prompts before launch by clearing `default_situation`, setting `_warn_update 0`, and removing `UNSAFE` from `Output/preferences/X-Plane Screen Res.prf`.
 - A fresh static snapshot at `.oden-aero-patd/runs/20260606T203802Z` shows the PATD spec checks passing for monitor count, outside-view geometry, outside-view resolution, avionics assignments, and device counts.
 - The stale `Output/situations/Cessna Skyhawk (G1000) Situation 49.sit` startup popup is no longer present after removing `default_situation` from `Output/preferences/Miscellaneous.prf`.
-- The remaining leading suspects are now the duplicate G5 COM6 mapping, duplicate G5 popup target-monitor assignment state, and the lingering `Failed to restore custom screen resolution` log entry for monitor 2.
+- The cached-update suppression is not sufficient to prevent the upgrade dialog from appearing during live startup, so that prompt remains an outstanding issue.
+- The remaining leading suspects are now the duplicate G5 COM6 mapping, duplicate G5 popup target-monitor assignment state, the lingering `Failed to restore custom screen resolution` log entry for monitor 2, and whatever live path still raises the upgrade dialog.
+
+## Current operator workflow
+
+1. Reset persisted monitor layout prefs and let X-Plane rebuild them from scratch.
+2. Allow up to 30 seconds at startup for the operator to dismiss dialogs and manually position windows.
+3. Capture a new snapshot only after the operator confirms the layout is correct.
 
 ## Exit criteria
 

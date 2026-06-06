@@ -2,22 +2,25 @@
 
 ## Active workstream
 
-1. Resolve duplicate RealSimGear G5 COM6 mapping and popup target conflicts.
-2. Determine why X-Plane still logs the monitor 2 custom-resolution restore warning.
-3. Add pre/post snapshot diff reporting.
-4. Investigate RealSimGear and G5 runtime commands or datarefs for live popup reassignment.
-5. Document confirmed runtime control points in the PATD spec.
-6. Decide whether live reset should be implemented with an in-sim plugin.
+1. Reset monitor layout prefs and rebuild the display positions from scratch.
+2. Confirm whether the upgrade dialog still appears after a clean monitor reset.
+3. Resolve duplicate RealSimGear G5 COM6 mapping and popup target conflicts.
+4. Determine why X-Plane still logs the monitor 2 custom-resolution restore warning.
+5. Add pre/post snapshot diff reporting.
+6. Investigate RealSimGear and G5 runtime commands or datarefs for live popup reassignment.
+7. Document confirmed runtime control points in the PATD spec.
+8. Decide whether live reset should be implemented with an in-sim plugin.
 
 ## Execution order
 
 Current default order:
 
-1. Safe config validation and startup suppression
-2. G5 duplicate mapping cleanup
-3. Snapshot diff support
-4. Runtime API investigation
-5. In-sim plugin decision
+1. Clean monitor reset and manual recapture
+2. Upgrade dialog investigation
+3. G5 duplicate mapping cleanup
+4. Snapshot diff support
+5. Runtime API investigation
+6. In-sim plugin decision
 
 ## Done
 
@@ -33,3 +36,5 @@ Current default order:
 10. Harden startup prompt suppression in the harness by clearing `default_situation`, setting `_warn_update 0`, and stripping `UNSAFE` before launch.
 11. Re-run a validation snapshot and confirm the PATD spec checks pass except for the known duplicate G5 port issue.
 12. Confirm the stale situation-file startup popup is gone after removing `default_situation` from `Output/preferences/Miscellaneous.prf`.
+13. Add guaranteed post-run cleanup so harness prompt suppression is restored even if run capture fails.
+14. Add a monitor reset command and a default 30-second manual startup interaction window for live recapture.

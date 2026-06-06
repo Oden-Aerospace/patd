@@ -26,6 +26,7 @@ DEVICE_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "DeviceMa
 COMMAND_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "CommandMapping.ini"
 MAIN_LOG = REPO_ROOT / "Log.txt"
 ATC_LOG = REPO_ROOT / "Log_ATC.txt"
+MONITOR_RESET_PREFS = [WINDOW_POSITIONS, SCREEN_RES_PREFS]
 
 
 def utc_stamp() -> str:
@@ -390,6 +391,35 @@ def apply_safe_window_config(spec: dict, window_state: dict, run_dir: Path) -> d
     return result
 
 
+def reset_monitor_config(run_dir: Path) -> dict:
+    artifacts_dir = run_dir / "artifacts"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    result = {
+        "strategy": "Back up and remove persisted monitor layout prefs so X-Plane can rebuild them from scratch.",
+        "files": [],
+        "notes": [
+            "Launch X-Plane and let it rebuild monitor prefs from scratch.",
+            "Use the manual interaction window to dismiss dialogs and position displays.",
+            "Capture a new snapshot after the operator confirms the layout is correct.",
+        ],
+    }
+    for path in MONITOR_RESET_PREFS:
+        entry = {
+            "path": str(path),
+            "backup": None,
+            "removed": False,
+            "exists_before": path.exists(),
+        }
+        if path.exists():
+            backup_path = artifacts_dir / path.name
+            shutil.copy2(path, backup_path)
+            entry["backup"] = str(backup_path)
+            path.unlink()
+            entry["removed"] = True
+        result["files"].append(entry)
+    return result
+
+
 def sanitize_startup_prompts(run_dir: Path, output_name: str = "startup_prompt_sanitization.json") -> dict:
     artifacts_dir = run_dir / "artifacts"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -568,6 +598,17 @@ def command_apply_safe_config(_: argparse.Namespace) -> int:
     return 0
 
 
+def command_reset_monitor_config(_: argparse.Namespace) -> int:
+    run_dir = RUNS_DIR / utc_stamp()
+    run_dir.mkdir(parents=True, exist_ok=True)
+    cleanup = ensure_xplane_not_running()
+    result = reset_monitor_config(run_dir)
+    result["xplane_process_cleanup"] = cleanup
+    write_json(run_dir / "monitor_reset.json", result)
+    print(f"Monitor reset complete: {run_dir / 'monitor_reset.json'}")
+    return 0
+
+
 def write_report(run_dir: Path, state: dict, launch_result: dict | None) -> None:
     lines = [
         "# PATD Harness Report",
@@ -584,6 +625,7 @@ def write_report(run_dir: Path, state: dict, launch_result: dict | None) -> None
                 f"- launched: {launch_result['launched']}",
                 f"- exit_code: {launch_result['exit_code']}",
                 f"- runtime_seconds: {launch_result['runtime_seconds']}",
+                f"- manual_wait_seconds: {launch_result['manual_wait_seconds']}",
                 f"- terminated_by_harness: {launch_result['terminated_by_harness']}",
                 "",
             ]
@@ -615,7 +657,7 @@ def write_report(run_dir: Path, state: dict, launch_result: dict | None) -> None
     (run_dir / "report.md").write_text("\n".join(lines), encoding="utf-8")
 
 
-def launch_xplane(executable: Path, duration: int, leave_running: bool) -> dict:
+def launch_xplane(executable: Path, duration: int, leave_running: bool, manual_wait_seconds: int) -> dict:
     if not executable.exists():
         raise FileNotFoundError(f"X-Plane executable not found: {executable}")
 
@@ -623,6 +665,8 @@ def launch_xplane(executable: Path, duration: int, leave_running: bool) -> dict:
     start = time.time()
     exit_code: int | None = None
     terminated_by_harness = False
+    if manual_wait_seconds > 0:
+        time.sleep(manual_wait_seconds)
     try:
         exit_code = process.wait(timeout=duration)
     except subprocess.TimeoutExpired:
@@ -640,6 +684,7 @@ def launch_xplane(executable: Path, duration: int, leave_running: bool) -> dict:
         "launched": True,
         "exit_code": exit_code,
         "runtime_seconds": runtime_seconds,
+        "manual_wait_seconds": manual_wait_seconds,
         "terminated_by_harness": terminated_by_harness,
     }
 
@@ -662,7 +707,7 @@ def command_run(args: argparse.Namespace) -> int:
     state["startup_prompt_sanitization"] = startup_prompt_result
     launch_result: dict | None = None
     try:
-        launch_result = launch_xplane(Path(args.xplane_exe), args.duration, args.leave_running)
+        launch_result = launch_xplane(Path(args.xplane_exe), args.duration, args.leave_running, args.manual_wait)
         state.update(snapshot(run_dir))
     except Exception as exc:
         state["run_error"] = repr(exc)
@@ -698,9 +743,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     apply_parser.set_defaults(func=command_apply_safe_config)
 
+    reset_parser = subparsers.add_parser(
+        "reset-monitor-config",
+        help="Back up and remove persisted X-Plane monitor layout prefs so displays can be repositioned from scratch",
+    )
+    reset_parser.set_defaults(func=command_reset_monitor_config)
+
     run_parser = subparsers.add_parser("run", help="Launch X-Plane, capture artifacts, and validate the configuration")
     run_parser.add_argument("--xplane-exe", default=str(DEFAULT_XPLANE_EXE), help="Path to X-Plane.exe")
-    run_parser.add_argument("--duration", type=int, default=45, help="Seconds to wait before capturing the snapshot")
+    run_parser.add_argument("--duration", type=int, default=45, help="Seconds to wait after the manual interaction window before capturing the snapshot")
+    run_parser.add_argument("--manual-wait", type=int, default=30, help="Seconds to leave X-Plane alone at startup so the operator can dismiss dialogs and position windows")
     run_parser.add_argument("--leave-running", action="store_true", help="Do not terminate X-Plane after the wait period")
     run_parser.set_defaults(func=command_run)
 
