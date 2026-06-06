@@ -42,6 +42,34 @@ The crash is likely caused by one of these persisted-configuration conflicts:
   - G5 personas: `PFD`, `HSI`
 - Resources/plugins/RealSimGear/DeviceMapping.ini records 3 G5 entries, including two on COM6.
 
+## Crash log findings from 2026-06-06 session
+
+Observed in Log.txt:
+
+- X-Plane fails early while restoring monitor configuration:
+  - `Failed to restore custom screen resolution. Monitor 2 does not appear to support a resolution of 3840x2160.`
+- The RealSimGear and aircraft-specific command maps both load successfully.
+- The RealSimGear plugin opens COM10, COM11, COM12, and COM6.
+- The G5 plugin initializes duplicate popup instances:
+  - `Init G5 Popup (A) No Bezel Duplicate`
+  - `Init G5 Popup (B) No Bezel Duplicate`
+- The G5 plugin later reports monitor assignment conflicts:
+  - `RSG: G5 A already has existing target monitor ID set`
+  - `RSG: G5 B already has existing target monitor ID set`
+  - `RSG: G5 B DUP already has existing target monitor ID set`
+- During reconfiguration, X-Plane cannot save the window-layout preference file:
+  - `The file could not be saved... C:\X-Plane 12\Output\preferences\X-Plane Window Positions.prf`
+- The file is not currently marked read-only at the Windows file-attribute level, so this save failure is likely due to a transient lock, failed write path, or X-Plane/plugin state rather than the simple read-only attribute bit.
+- Shortly before the crash, X-Plane reports:
+  - `Opened window Settings`
+  - `Runloop is backed up. Current task count: 440, estimated runtime: 64.953s`
+- The crash footer appears immediately after the Settings window interaction.
+
+Observed in Log_ATC.txt:
+
+- No instrument-specific crash cause is visible there.
+- The crash report footer points to Log_ATC.txt, but the meaningful instrument and monitor clues are in Log.txt.
+
 ## Reproduction notes
 
 Current reproduction statement from operator:
@@ -58,11 +86,12 @@ The exact reconfiguration path still needs to be pinned down:
 ## Next checks
 
 1. Capture the exact X-Plane or plugin action that triggers the crash.
-2. Inspect Log.txt immediately after the crash for RealSimGear and display-manager errors.
-3. Correlate each physical monitor to its Windows display ID.
-4. Correlate each physical G5 to its COM port and intended persona.
-5. Determine whether one of the duplicate COM6 G5 entries should be removed or re-enumerated.
+2. Correlate each physical monitor to its Windows display ID, with special attention to the display X-Plane calls monitor 2.
+3. Correlate each physical G5 to its COM port and intended persona.
+4. Determine whether one of the duplicate COM6 G5 entries should be removed or re-enumerated.
+5. Verify whether the G5 popup target monitors can be reset cleanly by removing stale popup or monitor-assignment state.
 6. Verify whether X-Plane should expose separate monitor windows for G5s, or whether those are fully plugin-driven and should not appear in X-Plane monitor assignments.
+7. Reproduce once more and capture the exact click path inside the Settings window that immediately precedes the crash.
 
 ## Exit criteria
 
