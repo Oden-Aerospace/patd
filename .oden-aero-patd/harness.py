@@ -126,6 +126,23 @@ def parse_device_mapping(path: Path) -> list[dict]:
     return devices
 
 
+def resolve_loaded_situation_path() -> Path | None:
+    misc_text = read_text(MISC_PREFS)
+    default_match = re.search(r"^default_situation\s+(.+)\s*$", misc_text, flags=re.MULTILINE)
+    if default_match:
+        candidate = REPO_ROOT / default_match.group(1).strip()
+        if candidate.exists() and candidate.suffix.lower() == ".sit":
+            return candidate
+
+    log_text = read_text(MAIN_LOG)
+    log_matches = re.findall(r"Output/situations/[^\r\n]+?\.sit", log_text)
+    if log_matches:
+        candidate = REPO_ROOT / log_matches[-1]
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def scan_log_signals(log_text: str, spec: dict) -> dict:
     matches: dict[str, list[str]] = {}
     for pattern in spec["log_patterns"]["errors"]:
@@ -562,6 +579,11 @@ def snapshot(run_dir: Path) -> dict:
     copy_if_exists(COMMAND_MAPPING, artifacts_dir / COMMAND_MAPPING.name)
     copy_if_exists(MAIN_LOG, artifacts_dir / MAIN_LOG.name)
     copy_if_exists(ATC_LOG, artifacts_dir / ATC_LOG.name)
+    loaded_situation = resolve_loaded_situation_path()
+    loaded_situation_artifact = None
+    if loaded_situation is not None:
+        loaded_situation_artifact = artifacts_dir / loaded_situation.name
+        copy_if_exists(loaded_situation, loaded_situation_artifact)
 
     state = {
         "timestamp": utc_stamp(),
@@ -570,6 +592,8 @@ def snapshot(run_dir: Path) -> dict:
         "device_mapping": devices,
         "log_state": log_state,
         "findings": findings,
+        "loaded_situation": str(loaded_situation) if loaded_situation is not None else None,
+        "loaded_situation_artifact": str(loaded_situation_artifact) if loaded_situation_artifact is not None else None,
     }
     write_json(run_dir / "snapshot.json", state)
     return state

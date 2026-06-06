@@ -23,6 +23,26 @@ Notes from this checkpoint:
 - Current geometry values in the snapshot show left/right outside-view offsets still at 0.0, which matches the operator note that perspective blending is not finished yet.
 - This checkpoint should be treated as the temporary baseline for instrument placement while outside-view perspective tuning continues.
 
+## Wrap-around tuning checkpoint (2026-06-06)
+
+Operator-confirmed update during the same session:
+
+- Wrap-around alignment is significantly closer than the prior checkpoint.
+- Instruments remain on the correct screens.
+- Exterior displays remain assigned as external visuals.
+
+Saved checkpoint artifacts:
+
+- Snapshot directory: `.oden-aero-patd/runs/20260606T211338Z`
+- Summary report: `.oden-aero-patd/runs/20260606T211338Z/report.md`
+- Raw snapshot: `.oden-aero-patd/runs/20260606T211338Z/snapshot.json`
+- Captured loaded situation file artifact: `.oden-aero-patd/runs/20260606T211338Z/artifacts/Cessna Skyhawk (G1000) Situation 50.sit`
+
+Notes from this checkpoint:
+
+- Perspective offsets are improved but not yet final for fully seamless exterior blending.
+- Treat this as the latest in-progress geometry baseline before final fine tuning.
+
 ## Intended physical layout
 
 Reported target layout:
