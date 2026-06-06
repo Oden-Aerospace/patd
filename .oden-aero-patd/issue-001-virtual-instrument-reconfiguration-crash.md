@@ -19,7 +19,7 @@ X-Plane is not reliably loading the intended virtual instrument configuration fo
 - The two X-Plane avionics slots are assigned to `G1000_MFD` and `G1000_PFD1`.
 - RealSimGear plugin config shows 2 G1000 displays and 3 G5 displays.
 - Two of the 3 G5 entries in DeviceMapping.ini are assigned to the same COM6 port.
-- One X-Plane outside-view slot is stored with a 640x480 full resolution, which is inconsistent with the intended outside-view monitor setup.
+- The previously bad center outside-view persisted full resolution has been repaired from 640x480 to 3840x2160 using the PATD safe-config harness path.
 
 ## Current hypothesis
 
@@ -92,6 +92,13 @@ The exact reconfiguration path still needs to be pinned down:
 5. Verify whether the G5 popup target monitors can be reset cleanly by removing stale popup or monitor-assignment state.
 6. Verify whether X-Plane should expose separate monitor windows for G5s, or whether those are fully plugin-driven and should not appear in X-Plane monitor assignments.
 7. Reproduce once more and capture the exact click path inside the Settings window that immediately precedes the crash.
+
+## Progress update
+
+- The PATD harness now supports `apply-safe-config` with automatic backup of `Output/preferences/X-Plane Window Positions.prf`.
+- That repair path updated the persisted center outside-view full resolution from 640x480 to 3840x2160.
+- A post-apply harness snapshot now passes the `outside_view_resolution_1` check.
+- The remaining leading suspects are now the duplicate G5 COM6 mapping and duplicate G5 popup target-monitor assignment state.
 
 ## Exit criteria
 

@@ -82,6 +82,7 @@ def parse_window_positions(path: Path) -> dict:
             continue
         monitor_id, key, value = match.groups()
         monitors.setdefault(monitor_id, {})[key] = value
+        monitors[monitor_id]["monitor_id"] = monitor_id
 
     for monitor in monitors.values():
         bounds = []
@@ -301,6 +302,80 @@ def draft_safe_window_config(spec: dict, window_state: dict, displays: list[dict
     return proposed
 
 
+def replace_monitor_setting(text: str, monitor_id: str, key: str, value: str) -> str:
+    pattern = re.compile(rf"^(monitor/{re.escape(monitor_id)}/{re.escape(key)})\s+.+$", re.MULTILINE)
+    replacement = rf"\1 {value}"
+    updated_text, count = pattern.subn(replacement, text, count=1)
+    if count != 1:
+        raise ValueError(f"Could not uniquely update monitor/{monitor_id}/{key} in {WINDOW_POSITIONS}")
+    return updated_text
+
+
+def build_safe_resolution_updates(spec: dict, window_state: dict) -> list[dict]:
+    normal_visuals = sorted(
+        [item for item in window_state["monitors"].values() if item.get("m_usage") == spec["xplane"]["normal_visual_usage"]],
+        key=lambda item: float(item.get("proj/off_lat_deg", "0")),
+    )
+    updates: list[dict] = []
+    for index, expected in enumerate(spec["xplane"]["expected_outside_views"]):
+        if index >= len(normal_visuals):
+            break
+        minimum_resolution = expected.get("min_resolution")
+        if minimum_resolution is None:
+            continue
+        current = normal_visuals[index]
+        current_width = int(current.get("m_x_res_full", "0"))
+        current_height = int(current.get("m_y_res_full", "0"))
+        minimum_width, minimum_height = parse_resolution(minimum_resolution)
+        if current_width >= minimum_width and current_height >= minimum_height:
+            continue
+        target_width = minimum_width
+        target_height = minimum_height
+        window_bounds = current.get("window_bounds") or []
+        if len(window_bounds) == 4:
+            target_width = max(target_width, int(window_bounds[2]))
+            target_height = max(target_height, int(window_bounds[3]))
+        updates.append(
+            {
+                "slot": index,
+                "monitor_id": current["monitor_id"],
+                "from": f"{current_width}x{current_height}",
+                "to": f"{target_width}x{target_height}",
+                "reason": f"Outside-view slot {index} is below required minimum {minimum_resolution}.",
+            }
+        )
+    return updates
+
+
+def apply_safe_window_config(spec: dict, window_state: dict, run_dir: Path) -> dict:
+    updates = build_safe_resolution_updates(spec, window_state)
+    result = {
+        "strategy": "Apply only minimal outside-view full-resolution repairs with a backup.",
+        "backup_file": None,
+        "applied": [],
+        "skipped": [],
+    }
+    if not updates:
+        result["skipped"].append("No safe resolution updates were needed.")
+        return result
+
+    backup_dir = run_dir / "artifacts"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    backup_path = backup_dir / WINDOW_POSITIONS.name
+    shutil.copy2(WINDOW_POSITIONS, backup_path)
+    result["backup_file"] = str(backup_path)
+
+    updated_text = read_text(WINDOW_POSITIONS)
+    for update in updates:
+        width_text, height_text = update["to"].split("x", maxsplit=1)
+        updated_text = replace_monitor_setting(updated_text, update["monitor_id"], "m_x_res_full", width_text)
+        updated_text = replace_monitor_setting(updated_text, update["monitor_id"], "m_y_res_full", height_text)
+        result["applied"].append(update)
+
+    WINDOW_POSITIONS.write_text(updated_text, encoding="utf-8")
+    return result
+
+
 def copy_if_exists(source: Path, destination: Path) -> None:
     if source.exists():
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -347,6 +422,17 @@ def command_draft_safe_config(_: argparse.Namespace) -> int:
     draft = draft_safe_window_config(spec, window_state, displays)
     write_json(run_dir / "safe_config_draft.json", draft)
     print(f"Safe config draft complete: {run_dir / 'safe_config_draft.json'}")
+    return 0
+
+
+def command_apply_safe_config(_: argparse.Namespace) -> int:
+    run_dir = RUNS_DIR / utc_stamp()
+    run_dir.mkdir(parents=True, exist_ok=True)
+    spec = load_spec()
+    window_state = parse_window_positions(WINDOW_POSITIONS)
+    result = apply_safe_window_config(spec, window_state, run_dir)
+    write_json(run_dir / "safe_config_apply.json", result)
+    print(f"Safe config apply complete: {run_dir / 'safe_config_apply.json'}")
     return 0
 
 
@@ -457,6 +543,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate a safe monitor-reset draft without overwriting the live X-Plane preference file",
     )
     draft_parser.set_defaults(func=command_draft_safe_config)
+
+    apply_parser = subparsers.add_parser(
+        "apply-safe-config",
+        help="Back up and apply the minimal safe outside-view resolution fixes to the live X-Plane preference file",
+    )
+    apply_parser.set_defaults(func=command_apply_safe_config)
 
     run_parser = subparsers.add_parser("run", help="Launch X-Plane, capture artifacts, and validate the configuration")
     run_parser.add_argument("--xplane-exe", default=str(DEFAULT_XPLANE_EXE), help="Path to X-Plane.exe")

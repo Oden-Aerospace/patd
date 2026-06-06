@@ -37,6 +37,12 @@ Draft a safe monitor-reset plan from the current preferences:
 .\.oden-aero-patd\.venv\Scripts\python.exe .\.oden-aero-patd\harness.py draft-safe-config
 ```
 
+Apply the minimal safe outside-view resolution repairs with an automatic backup:
+
+```powershell
+.\.oden-aero-patd\.venv\Scripts\python.exe .\.oden-aero-patd\harness.py apply-safe-config
+```
+
 Launch X-Plane, wait 45 seconds, capture results, and shut it down:
 
 ```powershell
@@ -47,7 +53,8 @@ Launch X-Plane, wait 45 seconds, capture results, and shut it down:
 
 - This first version does not drive the X-Plane UI.
 - It validates configuration state and captures logs around launch and shutdown.
-- It can propose safer monitor settings, but it does not write them into the live X-Plane preference file yet.
+- It can propose safer monitor settings.
+- It can now apply a minimal, backup-first repair for known-bad outside-view full-resolution entries.
 - For crash reproduction inside the Settings UI, use the harness to capture artifacts before and after a manual repro step.
 
 ## Recommendation

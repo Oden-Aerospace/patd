@@ -11539,8 +11539,8 @@ monitor/1/m_arbitrary_bounds/2 3840
 monitor/1/m_arbitrary_bounds/3 2160
 monitor/1/m_bpp 32
 monitor/1/m_refresh_rate 60
-monitor/1/m_x_res_full 640
-monitor/1/m_y_res_full 480
+monitor/1/m_x_res_full 3840
+monitor/1/m_y_res_full 2160
 monitor/1/m_is_fullscreen wmgr_mode_fullscreen
 monitor/1/m_usage wmgr_usage_normal_visuals
 monitor/1/proj/proj_cylinder 0

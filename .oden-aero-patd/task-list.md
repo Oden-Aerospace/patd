@@ -2,14 +2,10 @@
 
 ## Active workstream
 
-1. Add `apply-safe-config` to the harness.
-2. Back up `Output/preferences/X-Plane Window Positions.prf` before any rewrite.
-3. Rewrite only the understood monitor-related settings for the outside-view monitors.
-4. Re-run the harness after applying the safe config.
-5. Add pre/post snapshot diff reporting.
-6. Investigate RealSimGear and G5 runtime commands or datarefs for live popup reassignment.
-7. Document confirmed runtime control points in the PATD spec.
-8. Decide whether live reset should be implemented with an in-sim plugin.
+1. Add pre/post snapshot diff reporting.
+2. Investigate RealSimGear and G5 runtime commands or datarefs for live popup reassignment.
+3. Document confirmed runtime control points in the PATD spec.
+4. Decide whether live reset should be implemented with an in-sim plugin.
 
 ## Execution order
 
@@ -27,3 +23,7 @@ Current default order:
 3. Capture current crash-log findings for issue 001.
 4. Build initial Python harness and local `.venv` support.
 5. Add stricter spec-driven monitor validation and safe config draft generation.
+6. Add `apply-safe-config` to the harness.
+7. Back up `Output/preferences/X-Plane Window Positions.prf` automatically before rewrite.
+8. Rewrite only the known-bad outside-view full-resolution entry.
+9. Re-run the harness and verify `outside_view_resolution_1` passes.
