@@ -98,7 +98,10 @@ The exact reconfiguration path still needs to be pinned down:
 - The PATD harness now supports `apply-safe-config` with automatic backup of `Output/preferences/X-Plane Window Positions.prf`.
 - That repair path updated the persisted center outside-view full resolution from 640x480 to 3840x2160.
 - A post-apply harness snapshot now passes the `outside_view_resolution_1` check.
-- The remaining leading suspects are now the duplicate G5 COM6 mapping and duplicate G5 popup target-monitor assignment state.
+- The harness now sanitizes startup prompts before launch by clearing `default_situation`, setting `_warn_update 0`, and removing `UNSAFE` from `Output/preferences/X-Plane Screen Res.prf`.
+- A fresh static snapshot at `.oden-aero-patd/runs/20260606T203802Z` shows the PATD spec checks passing for monitor count, outside-view geometry, outside-view resolution, avionics assignments, and device counts.
+- The stale `Output/situations/Cessna Skyhawk (G1000) Situation 49.sit` startup popup is no longer present after removing `default_situation` from `Output/preferences/Miscellaneous.prf`.
+- The remaining leading suspects are now the duplicate G5 COM6 mapping, duplicate G5 popup target-monitor assignment state, and the lingering `Failed to restore custom screen resolution` log entry for monitor 2.
 
 ## Exit criteria
 
