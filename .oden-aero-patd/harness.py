@@ -659,16 +659,22 @@ def command_run(args: argparse.Namespace) -> int:
     state: dict = {"timestamp": utc_stamp()}
     state["xplane_process_cleanup"] = ensure_xplane_not_running()
     startup_prompt_result = sanitize_startup_prompts(run_dir)
-    launch_result = launch_xplane(Path(args.xplane_exe), args.duration, args.leave_running)
-    state.update(snapshot(run_dir))
     state["startup_prompt_sanitization"] = startup_prompt_result
-    if not args.leave_running:
-        state["post_run_prompt_cleanup"] = sanitize_startup_prompts(
-            run_dir,
-            output_name="post_run_prompt_cleanup.json",
-        )
-    write_json(run_dir / "snapshot.json", state)
-    write_report(run_dir, state, launch_result=launch_result)
+    launch_result: dict | None = None
+    try:
+        launch_result = launch_xplane(Path(args.xplane_exe), args.duration, args.leave_running)
+        state.update(snapshot(run_dir))
+    except Exception as exc:
+        state["run_error"] = repr(exc)
+    finally:
+        if not args.leave_running:
+            state["post_run_prompt_cleanup"] = sanitize_startup_prompts(
+                run_dir,
+                output_name="post_run_prompt_cleanup.json",
+            )
+        write_json(run_dir / "snapshot.json", state)
+        if launch_result is not None and "findings" in state and "log_state" in state and "windows_displays" in state:
+            write_report(run_dir, state, launch_result=launch_result)
     print(f"Run complete: {run_dir}")
     return 0
 
