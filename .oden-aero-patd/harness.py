@@ -3,11 +3,9 @@ from __future__ import annotations
 import argparse
 import configparser
 import json
-import os
 import re
 import shutil
 import subprocess
-import sys
 import time
 from collections import Counter
 from datetime import UTC, datetime
@@ -41,6 +39,11 @@ def write_json(path: Path, data: object) -> None:
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def parse_resolution(value: str) -> tuple[int, int]:
+    width_text, height_text = value.split("x", maxsplit=1)
+    return int(width_text), int(height_text)
+
+
 def load_spec() -> dict:
     return json.loads(SPEC_PATH.read_text(encoding="utf-8"))
 
@@ -69,7 +72,9 @@ def collect_windows_displays() -> list[dict]:
 
 
 def parse_window_positions(path: Path) -> dict:
-    monitor_pattern = re.compile(r"^monitor/(\d+)/(m_usage|m_monitor|m_avionics_device|m_x_res_full|m_y_res_full)\s+(.+)$")
+    monitor_pattern = re.compile(
+        r"^monitor/(\d+)/(m_usage|m_monitor|m_avionics_device|m_x_res_full|m_y_res_full|proj/off_lat_deg|proj/off_vrt_deg|m_window_bounds/[0-3])\s+(.+)$"
+    )
     monitors: dict[str, dict[str, str]] = {}
     for line in read_text(path).splitlines():
         match = monitor_pattern.match(line.strip())
@@ -77,6 +82,17 @@ def parse_window_positions(path: Path) -> dict:
             continue
         monitor_id, key, value = match.groups()
         monitors.setdefault(monitor_id, {})[key] = value
+
+    for monitor in monitors.values():
+        bounds = []
+        for index in range(4):
+            value = monitor.get(f"m_window_bounds/{index}")
+            if value is None:
+                bounds = []
+                break
+            bounds.append(int(float(value)))
+        if bounds:
+            monitor["window_bounds"] = bounds
     return {"monitors": monitors, "count": len(monitors)}
 
 
@@ -104,101 +120,185 @@ def scan_log_signals(log_text: str, spec: dict) -> dict:
     return {"crash_detected": crash_detected, "pattern_matches": matches}
 
 
+def add_result(findings: list[dict], status: str, check: str, message: str) -> None:
+    findings.append({"status": status, "check": check, "message": message})
+
+
 def validate_state(spec: dict, window_state: dict, devices: list[dict], log_state: dict) -> list[dict]:
     findings: list[dict] = []
     monitors = list(window_state["monitors"].values())
     normal_visuals = [item for item in monitors if item.get("m_usage") == spec["xplane"]["normal_visual_usage"]]
     avionics = [item for item in monitors if item.get("m_usage") == spec["xplane"]["avionics_usage"]]
-    if len(normal_visuals) != spec["outside_view_monitors"]:
-        findings.append({
-            "status": "fail",
-            "check": "outside_view_count",
-            "message": f"Expected {spec['outside_view_monitors']} outside-view monitors, found {len(normal_visuals)}.",
-        })
+    if window_state["count"] != spec["xplane"]["expected_monitor_count"]:
+        add_result(
+            findings,
+            "fail",
+            "xplane_monitor_count",
+            f"Expected {spec['xplane']['expected_monitor_count']} X-Plane monitor slots, found {window_state['count']}.",
+        )
     else:
-        findings.append({
-            "status": "pass",
-            "check": "outside_view_count",
-            "message": f"Found {len(normal_visuals)} outside-view monitors.",
-        })
+        add_result(findings, "pass", "xplane_monitor_count", "Expected X-Plane monitor slot count detected.")
+
+    if len(normal_visuals) != spec["outside_view_monitors"]:
+        add_result(
+            findings,
+            "fail",
+            "outside_view_count",
+            f"Expected {spec['outside_view_monitors']} outside-view monitors, found {len(normal_visuals)}.",
+        )
+    else:
+        add_result(findings, "pass", "outside_view_count", f"Found {len(normal_visuals)} outside-view monitors.")
+
+    current_outside_views = sorted(
+        normal_visuals,
+        key=lambda item: float(item.get("proj/off_lat_deg", "0")),
+    )
+    for index, expected in enumerate(spec["xplane"]["expected_outside_views"]):
+        if index >= len(current_outside_views):
+            break
+        current = current_outside_views[index]
+        off_lat = float(current.get("proj/off_lat_deg", "0"))
+        off_vrt = float(current.get("proj/off_vrt_deg", "0"))
+        resolution = f"{current.get('m_x_res_full', '0')}x{current.get('m_y_res_full', '0')}"
+        lat_ok = abs(off_lat - expected["off_lat_deg"]) < 0.25
+        vrt_ok = abs(off_vrt - expected["off_vrt_deg"]) < 0.25
+        if lat_ok and vrt_ok:
+            add_result(
+                findings,
+                "pass",
+                f"outside_view_geometry_{index}",
+                f"Outside-view slot {index} geometry matches expected offsets ({off_lat}, {off_vrt}).",
+            )
+        else:
+            add_result(
+                findings,
+                "fail",
+                f"outside_view_geometry_{index}",
+                f"Outside-view slot {index} offsets are ({off_lat}, {off_vrt}) but expected ({expected['off_lat_deg']}, {expected['off_vrt_deg']}).",
+            )
+
+        min_resolution = expected.get("min_resolution")
+        if min_resolution is not None:
+            current_width, current_height = parse_resolution(resolution)
+            minimum_width, minimum_height = parse_resolution(min_resolution)
+            if current_width < minimum_width or current_height < minimum_height:
+                add_result(
+                    findings,
+                    "fail",
+                    f"outside_view_resolution_{index}",
+                    f"Outside-view slot {index} has persisted full resolution {resolution}, below expected minimum {min_resolution}.",
+                )
+            else:
+                add_result(
+                    findings,
+                    "pass",
+                    f"outside_view_resolution_{index}",
+                    f"Outside-view slot {index} full resolution {resolution} satisfies expected minimum {min_resolution}.",
+                )
 
     avionics_devices = {item.get("m_avionics_device") for item in avionics}
     missing_devices = [
         device for device in spec["xplane"]["required_avionics_devices"] if device not in avionics_devices
     ]
     if missing_devices:
-        findings.append({
-            "status": "fail",
-            "check": "required_avionics_devices",
-            "message": f"Missing required avionics device assignments: {', '.join(missing_devices)}.",
-        })
+        add_result(
+            findings,
+            "fail",
+            "required_avionics_devices",
+            f"Missing required avionics device assignments: {', '.join(missing_devices)}.",
+        )
     else:
-        findings.append({
-            "status": "pass",
-            "check": "required_avionics_devices",
-            "message": "Required X-Plane avionics assignments are present.",
-        })
+        add_result(findings, "pass", "required_avionics_devices", "Required X-Plane avionics assignments are present.")
 
     model_counts = Counter(device.get("Model") for device in devices)
     if model_counts.get("RealSimGear-G1000XFD", 0) != spec["realsimgear"]["g1000_xfd_count"]:
-        findings.append({
-            "status": "fail",
-            "check": "g1000_count",
-            "message": (
+        add_result(
+            findings,
+            "fail",
+            "g1000_count",
+            (
                 f"Expected {spec['realsimgear']['g1000_xfd_count']} RealSimGear-G1000XFD devices, "
                 f"found {model_counts.get('RealSimGear-G1000XFD', 0)}."
             ),
-        })
+        )
     else:
-        findings.append({
-            "status": "pass",
-            "check": "g1000_count",
-            "message": "Expected RealSimGear G1000 device count detected.",
-        })
+        add_result(findings, "pass", "g1000_count", "Expected RealSimGear G1000 device count detected.")
 
     g5_devices = [device for device in devices if device.get("Model") == "RealSimGear-G5"]
     if len(g5_devices) != spec["realsimgear"]["g5_count"]:
-        findings.append({
-            "status": "fail",
-            "check": "g5_count",
-            "message": f"Expected {spec['realsimgear']['g5_count']} G5 devices, found {len(g5_devices)}.",
-        })
+        add_result(
+            findings,
+            "fail",
+            "g5_count",
+            f"Expected {spec['realsimgear']['g5_count']} G5 devices, found {len(g5_devices)}.",
+        )
     else:
-        findings.append({
-            "status": "pass",
-            "check": "g5_count",
-            "message": "Expected RealSimGear G5 count detected.",
-        })
+        add_result(findings, "pass", "g5_count", "Expected RealSimGear G5 count detected.")
 
     ports = [device.get("Port") for device in g5_devices if device.get("Port")]
     duplicate_ports = [port for port, count in Counter(ports).items() if count > 1]
     if duplicate_ports and not spec["realsimgear"]["allow_duplicate_g5_ports"]:
-        findings.append({
-            "status": "fail",
-            "check": "g5_duplicate_ports",
-            "message": f"Duplicate G5 ports detected: {', '.join(duplicate_ports)}.",
-        })
+        add_result(findings, "fail", "g5_duplicate_ports", f"Duplicate G5 ports detected: {', '.join(duplicate_ports)}.")
     else:
-        findings.append({
-            "status": "pass",
-            "check": "g5_duplicate_ports",
-            "message": "No unexpected duplicate G5 ports detected.",
-        })
+        add_result(findings, "pass", "g5_duplicate_ports", "No unexpected duplicate G5 ports detected.")
 
     if log_state["crash_detected"]:
-        findings.append({
-            "status": "fail",
-            "check": "crash_detected",
-            "message": "Crash marker found in X-Plane log.",
-        })
+        add_result(findings, "fail", "crash_detected", "Crash marker found in X-Plane log.")
     else:
-        findings.append({
-            "status": "pass",
-            "check": "crash_detected",
-            "message": "No crash marker found in X-Plane log.",
-        })
+        add_result(findings, "pass", "crash_detected", "No crash marker found in X-Plane log.")
 
     return findings
+
+
+def validate_windows_inventory(spec: dict, displays: list[dict]) -> list[dict]:
+    findings: list[dict] = []
+    actual_resolutions = sorted(f"{display['Width']}x{display['Height']}" for display in displays)
+    expected_resolutions = sorted(spec["windows"]["expected_display_resolutions"])
+    if actual_resolutions == expected_resolutions:
+        add_result(findings, "pass", "windows_display_inventory", "Windows display resolution inventory matches the PATD spec.")
+    else:
+        add_result(
+            findings,
+            "fail",
+            "windows_display_inventory",
+            f"Windows display inventory mismatch. Expected {expected_resolutions}, found {actual_resolutions}.",
+        )
+    return findings
+
+
+def draft_safe_window_config(spec: dict, window_state: dict, displays: list[dict]) -> dict:
+    normal_visuals = sorted(
+        [item for item in window_state["monitors"].values() if item.get("m_usage") == spec["xplane"]["normal_visual_usage"]],
+        key=lambda item: float(item.get("proj/off_lat_deg", "0")),
+    )
+    large_displays = sorted(
+        [display for display in displays if display["Width"] >= 3840 and display["Height"] >= 2160],
+        key=lambda display: display["X"],
+    )
+    proposed = {
+        "strategy": "Draft only. Review before applying to Output/preferences/X-Plane Window Positions.prf.",
+        "outside_views": [],
+        "notes": [
+            "Use the left-to-right 3840x2160 displays as left/center/right outside views.",
+            "Reset the persisted center outside-view full resolution if it remains below 3840x2160.",
+            "Do not overwrite live X-Plane preferences automatically until G5 duplicate target issues are understood.",
+        ],
+    }
+    for index, expected in enumerate(spec["xplane"]["expected_outside_views"]):
+        current = normal_visuals[index] if index < len(normal_visuals) else {}
+        proposed_display = large_displays[index] if index < len(large_displays) else None
+        proposed["outside_views"].append(
+            {
+                "slot": index,
+                "current_monitor_index": current.get("m_monitor"),
+                "current_full_resolution": f"{current.get('m_x_res_full', '?')}x{current.get('m_y_res_full', '?')}",
+                "expected_off_lat_deg": expected["off_lat_deg"],
+                "expected_off_vrt_deg": expected["off_vrt_deg"],
+                "suggested_windows_display": proposed_display["DeviceName"] if proposed_display else None,
+                "suggested_full_resolution": f"{proposed_display['Width']}x{proposed_display['Height']}" if proposed_display else None,
+            }
+        )
+    return proposed
 
 
 def copy_if_exists(source: Path, destination: Path) -> None:
@@ -215,7 +315,9 @@ def snapshot(run_dir: Path) -> dict:
     log_text = read_text(MAIN_LOG)
     atc_log_text = read_text(ATC_LOG)
     log_state = scan_log_signals(log_text, spec)
-    findings = validate_state(spec, window_state, devices, log_state)
+    findings = []
+    findings.extend(validate_windows_inventory(spec, displays))
+    findings.extend(validate_state(spec, window_state, devices, log_state))
 
     artifacts_dir = run_dir / "artifacts"
     copy_if_exists(WINDOW_POSITIONS, artifacts_dir / WINDOW_POSITIONS.name)
@@ -234,6 +336,18 @@ def snapshot(run_dir: Path) -> dict:
     }
     write_json(run_dir / "snapshot.json", state)
     return state
+
+
+def command_draft_safe_config(_: argparse.Namespace) -> int:
+    run_dir = RUNS_DIR / utc_stamp()
+    run_dir.mkdir(parents=True, exist_ok=True)
+    spec = load_spec()
+    window_state = parse_window_positions(WINDOW_POSITIONS)
+    displays = collect_windows_displays()
+    draft = draft_safe_window_config(spec, window_state, displays)
+    write_json(run_dir / "safe_config_draft.json", draft)
+    print(f"Safe config draft complete: {run_dir / 'safe_config_draft.json'}")
+    return 0
 
 
 def write_report(run_dir: Path, state: dict, launch_result: dict | None) -> None:
@@ -337,6 +451,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     snapshot_parser = subparsers.add_parser("snapshot", help="Capture the current PATD configuration state")
     snapshot_parser.set_defaults(func=command_snapshot)
+
+    draft_parser = subparsers.add_parser(
+        "draft-safe-config",
+        help="Generate a safe monitor-reset draft without overwriting the live X-Plane preference file",
+    )
+    draft_parser.set_defaults(func=command_draft_safe_config)
 
     run_parser = subparsers.add_parser("run", help="Launch X-Plane, capture artifacts, and validate the configuration")
     run_parser.add_argument("--xplane-exe", default=str(DEFAULT_XPLANE_EXE), help="Path to X-Plane.exe")

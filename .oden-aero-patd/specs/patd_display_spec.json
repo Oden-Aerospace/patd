@@ -1,11 +1,39 @@
 {
   "outside_view_monitors": 3,
+  "windows": {
+    "expected_display_resolutions": [
+      "3840x2160",
+      "3840x2160",
+      "3840x2160",
+      "1024x768",
+      "1024x768",
+      "640x480",
+      "640x480",
+      "640x480"
+    ]
+  },
   "xplane": {
     "normal_visual_usage": "wmgr_usage_normal_visuals",
     "avionics_usage": "wmgr_usage_avionics",
+    "expected_monitor_count": 5,
     "required_avionics_devices": [
       "G1000_MFD",
       "G1000_PFD1"
+    ],
+    "expected_outside_views": [
+      {
+        "off_lat_deg": -61.0,
+        "off_vrt_deg": -2.2
+      },
+      {
+        "off_lat_deg": 0.0,
+        "off_vrt_deg": 0.0,
+        "min_resolution": "3840x2160"
+      },
+      {
+        "off_lat_deg": 61.0,
+        "off_vrt_deg": -2.2
+      }
     ]
   },
   "realsimgear": {
@@ -18,7 +46,8 @@
       "This application has crashed!",
       "Failed to restore custom screen resolution",
       "already has existing target monitor ID set",
-      "The file could not be saved"
+      "The file could not be saved",
+      "Runloop is backed up"
     ]
   }
 }
