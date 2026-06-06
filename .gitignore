@@ -27,6 +27,12 @@
 !Resources/plugins/RealSimGear/CommandMapping.ini
 !Resources/plugins/RealSimGear/DeviceMapping.ini
 
+# PATD project issue tracking (allow), but keep credentials private (ignore)
+!.oden-aero-patd/
+!.oden-aero-patd/**
+.oden-aero-patd/.creds/
+.oden-aero-patd/.creds/**
+
 # Safety: never commit logs, installers, scenery, aircraft, executables, archives
 *.log
 *.exe
