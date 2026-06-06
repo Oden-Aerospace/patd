@@ -43,6 +43,17 @@ Notes from this checkpoint:
 - Perspective offsets are improved but not yet final for fully seamless exterior blending.
 - Treat this as the latest in-progress geometry baseline before final fine tuning.
 
+## Active startup baseline
+
+The currently promoted deterministic startup baseline is:
+
+- Baseline marker: `.oden-aero-patd/baselines/current.json`
+- Baseline run: `.oden-aero-patd/runs/20260606T212417Z`
+
+Use this command to restore and launch from that baseline:
+
+- `./.oden-aero-patd/.venv/Scripts/python.exe ./.oden-aero-patd/harness.py start-from-baseline`
+
 ## Intended physical layout
 
 Reported target layout:

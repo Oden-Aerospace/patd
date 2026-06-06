@@ -1,0 +1,10 @@
+{
+  "run_id": "20260606T212417Z",
+  "label": "wraparound-instruments-baseline",
+  "created_utc": "2026-06-06T21:24:18Z",
+  "notes": [
+    "Promoted after operator confirmed instrument screens are correct and wrap-around is close.",
+    "Uses expanded snapshot artifacts that include startup-relevant preference files.",
+    "Use with harness command: start-from-baseline"
+  ]
+}

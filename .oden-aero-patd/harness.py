@@ -16,6 +16,8 @@ PATD_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PATD_DIR.parent
 SPEC_PATH = PATD_DIR / "specs" / "patd_display_spec.json"
 RUNS_DIR = PATD_DIR / "runs"
+BASELINES_DIR = PATD_DIR / "baselines"
+CURRENT_BASELINE = BASELINES_DIR / "current.json"
 DEFAULT_XPLANE_EXE = REPO_ROOT / "X-Plane.exe"
 WINDOW_POSITIONS = REPO_ROOT / "Output" / "preferences" / "X-Plane Window Positions.prf"
 SCREEN_RES_PREFS = REPO_ROOT / "Output" / "preferences" / "X-Plane Screen Res.prf"
@@ -27,6 +29,7 @@ COMMAND_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "Command
 MAIN_LOG = REPO_ROOT / "Log.txt"
 ATC_LOG = REPO_ROOT / "Log_ATC.txt"
 MONITOR_RESET_PREFS = [WINDOW_POSITIONS, SCREEN_RES_PREFS]
+BASELINE_PREFS = [WINDOW_POSITIONS, SCREEN_RES_PREFS, ANALYTICS_PREFS, MISC_PREFS, SERVER_LIST_PREFS]
 
 
 def utc_stamp() -> str:
@@ -61,6 +64,49 @@ def current_xplane_version_from_log() -> tuple[str, str] | None:
     if not match:
         return None
     return match.group(1).strip(), match.group(2)
+
+
+def resolve_current_baseline_run() -> str:
+    if not CURRENT_BASELINE.exists():
+        raise FileNotFoundError(f"Current baseline marker is missing: {CURRENT_BASELINE}")
+    data = json.loads(CURRENT_BASELINE.read_text(encoding="utf-8"))
+    run_id = data.get("run_id")
+    if not run_id:
+        raise ValueError(f"Baseline marker does not contain run_id: {CURRENT_BASELINE}")
+    return run_id
+
+
+def restore_baseline(run_id: str, run_dir: Path) -> dict:
+    source_artifacts = RUNS_DIR / run_id / "artifacts"
+    if not source_artifacts.exists():
+        raise FileNotFoundError(f"Baseline artifacts directory not found: {source_artifacts}")
+    restore_artifacts = run_dir / "artifacts"
+    restore_artifacts.mkdir(parents=True, exist_ok=True)
+    result = {
+        "run_id": run_id,
+        "source_artifacts": str(source_artifacts),
+        "restored": [],
+        "skipped": [],
+    }
+    for target in BASELINE_PREFS:
+        source = source_artifacts / target.name
+        if not source.exists():
+            result["skipped"].append({"target": str(target), "reason": f"missing source {source.name}"})
+            continue
+        backup = None
+        if target.exists():
+            backup = restore_artifacts / f"before_restore_{target.name}"
+            shutil.copy2(target, backup)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        result["restored"].append(
+            {
+                "target": str(target),
+                "source": str(source),
+                "backup": str(backup) if backup is not None else None,
+            }
+        )
+    return result
 
 
 def collect_windows_displays() -> list[dict]:
@@ -577,6 +623,10 @@ def snapshot(run_dir: Path) -> dict:
     copy_if_exists(WINDOW_POSITIONS, artifacts_dir / WINDOW_POSITIONS.name)
     copy_if_exists(DEVICE_MAPPING, artifacts_dir / DEVICE_MAPPING.name)
     copy_if_exists(COMMAND_MAPPING, artifacts_dir / COMMAND_MAPPING.name)
+    copy_if_exists(SCREEN_RES_PREFS, artifacts_dir / SCREEN_RES_PREFS.name)
+    copy_if_exists(ANALYTICS_PREFS, artifacts_dir / ANALYTICS_PREFS.name)
+    copy_if_exists(MISC_PREFS, artifacts_dir / MISC_PREFS.name)
+    copy_if_exists(SERVER_LIST_PREFS, artifacts_dir / SERVER_LIST_PREFS.name)
     copy_if_exists(MAIN_LOG, artifacts_dir / MAIN_LOG.name)
     copy_if_exists(ATC_LOG, artifacts_dir / ATC_LOG.name)
     loaded_situation = resolve_loaded_situation_path()
@@ -748,6 +798,34 @@ def command_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_start_from_baseline(args: argparse.Namespace) -> int:
+    run_dir = RUNS_DIR / utc_stamp()
+    run_dir.mkdir(parents=True, exist_ok=True)
+    state: dict = {"timestamp": utc_stamp()}
+    state["xplane_process_cleanup"] = ensure_xplane_not_running()
+    baseline_run_id = args.baseline_run if args.baseline_run else resolve_current_baseline_run()
+    state["baseline_restore"] = restore_baseline(baseline_run_id, run_dir)
+    startup_prompt_result = sanitize_startup_prompts(run_dir)
+    state["startup_prompt_sanitization"] = startup_prompt_result
+    launch_result: dict | None = None
+    try:
+        launch_result = launch_xplane(Path(args.xplane_exe), args.duration, args.leave_running, args.manual_wait)
+        state.update(snapshot(run_dir))
+    except Exception as exc:
+        state["run_error"] = repr(exc)
+    finally:
+        if not args.leave_running:
+            state["post_run_prompt_cleanup"] = sanitize_startup_prompts(
+                run_dir,
+                output_name="post_run_prompt_cleanup.json",
+            )
+        write_json(run_dir / "snapshot.json", state)
+        if launch_result is not None and "findings" in state and "log_state" in state and "windows_displays" in state:
+            write_report(run_dir, state, launch_result=launch_result)
+    print(f"Start-from-baseline complete: {run_dir}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="PATD X-Plane configuration harness")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -779,6 +857,17 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--manual-wait", type=int, default=30, help="Seconds to leave X-Plane alone at startup so the operator can dismiss dialogs and position windows")
     run_parser.add_argument("--leave-running", action="store_true", help="Do not terminate X-Plane after the wait period")
     run_parser.set_defaults(func=command_run)
+
+    baseline_run_parser = subparsers.add_parser(
+        "start-from-baseline",
+        help="Restore baseline prefs, launch X-Plane, and capture a validation snapshot",
+    )
+    baseline_run_parser.add_argument("--baseline-run", default=None, help="Run ID under .oden-aero-patd/runs to restore from; defaults to baselines/current.json")
+    baseline_run_parser.add_argument("--xplane-exe", default=str(DEFAULT_XPLANE_EXE), help="Path to X-Plane.exe")
+    baseline_run_parser.add_argument("--duration", type=int, default=45, help="Seconds to wait after the manual interaction window before capturing the snapshot")
+    baseline_run_parser.add_argument("--manual-wait", type=int, default=30, help="Seconds to leave X-Plane alone at startup so the operator can dismiss dialogs and position windows")
+    baseline_run_parser.add_argument("--leave-running", action="store_true", help="Do not terminate X-Plane after the wait period")
+    baseline_run_parser.set_defaults(func=command_start_from_baseline)
 
     return parser
 
