@@ -1,0 +1,11 @@
+[project]
+name = "oden-aero-patd-harness"
+version = "0.1.0"
+description = "PATD X-Plane configuration validation harness"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.patd]
+xplane_exe = "../X-Plane.exe"
+spec_file = "specs/patd_display_spec.json"
+artifacts_dir = "runs"

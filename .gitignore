@@ -32,6 +32,12 @@
 !.oden-aero-patd/**
 .oden-aero-patd/.creds/
 .oden-aero-patd/.creds/**
+.oden-aero-patd/.venv/
+.oden-aero-patd/.venv/**
+.oden-aero-patd/runs/
+.oden-aero-patd/runs/**
+.oden-aero-patd/**/__pycache__/
+.oden-aero-patd/**/*.pyc
 
 # Safety: never commit logs, installers, scenery, aircraft, executables, archives
 *.log

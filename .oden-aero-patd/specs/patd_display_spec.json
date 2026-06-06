@@ -1,0 +1,24 @@
+{
+  "outside_view_monitors": 3,
+  "xplane": {
+    "normal_visual_usage": "wmgr_usage_normal_visuals",
+    "avionics_usage": "wmgr_usage_avionics",
+    "required_avionics_devices": [
+      "G1000_MFD",
+      "G1000_PFD1"
+    ]
+  },
+  "realsimgear": {
+    "g1000_xfd_count": 2,
+    "g5_count": 3,
+    "allow_duplicate_g5_ports": false
+  },
+  "log_patterns": {
+    "errors": [
+      "This application has crashed!",
+      "Failed to restore custom screen resolution",
+      "already has existing target monitor ID set",
+      "The file could not be saved"
+    ]
+  }
+}
