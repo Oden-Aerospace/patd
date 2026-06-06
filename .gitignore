@@ -10,16 +10,10 @@
 !Custom Scenery/
 !Custom Scenery/scenery_packs.ini
 
-# Core X-Plane preferences (text-based)
+# Core X-Plane preferences (track entire folder)
 !Output/
 !Output/preferences/
-!Output/preferences/Freeflight.prf
-!Output/preferences/Miscellaneous.prf
-!Output/preferences/X-Plane Calibration.prf
-!Output/preferences/X-Plane Joystick Settings.prf
-!Output/preferences/X-Plane Keys.prf
-!Output/preferences/X-Plane Screen Res.prf
-!Output/preferences/X-Plane.prf
+!Output/preferences/**
 
 # Optional plugin mappings/config
 !Resources/

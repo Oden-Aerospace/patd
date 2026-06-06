@@ -7,7 +7,7 @@ This repository is intentionally restricted to small, text-based configuration f
 ## What is tracked
 
 - `Custom Scenery/scenery_packs.ini`
-- Selected files in `Output/preferences/`
+- All files in `Output/preferences/`
 - Selected plugin mapping/config files in `Resources/plugins/`
 
 ## What is NOT tracked

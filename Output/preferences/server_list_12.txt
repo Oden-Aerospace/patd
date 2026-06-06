@@ -1,0 +1,42 @@
+A
+1100 version
+SERVERS
+
+BETA X-Plane 12.4.3-b4-29478f69
+FINAL X-Plane 12.4.2-r2-e8339ac0
+FULL X-Plane 12.4.2-r2-e8339ac0
+
+BETA_VERSION  124307
+SCENERY_BETA_VERSION  120904
+FINAL_VERSION 124201
+SCENERY_FINAL_VERSION 120904
+
+BETA_INSTALLER_MAC  lookup.x-plane.com /_lookup_12_/download/X-Plane12InstallerMac.zip
+FINAL_INSTALLER_MAC lookup.x-plane.com /_lookup_12_/download/X-Plane12InstallerMac.zip
+BETA_INSTALLER_WIN  lookup.x-plane.com /_lookup_12_/download/X-Plane12InstallerWindows.zip
+FINAL_INSTALLER_WIN lookup.x-plane.com /_lookup_12_/download/X-Plane12InstallerWindows.zip
+BETA_INSTALLER_LIN  lookup.x-plane.com /_lookup_12_/download/X-Plane12InstallerLinux.zip
+FINAL_INSTALLER_LIN lookup.x-plane.com /_lookup_12_/download/X-Plane12InstallerLinux.zip
+
+SERVER desktop.x-plane.com
+/unsecured/
+CloudFront
+
+MANIFEST X-Plane 12.4.3-b4-29478f69/directory.txt.zip
+
+BRANCH Final
+BRANCH_BUILD_NUMBER 124201
+BRANCH_NAME X-Plane 12.4.2-r2-e8339ac0
+BRANCH_PATH X-Plane 12.4.2-r2-e8339ac0
+
+BRANCH Beta
+BRANCH_BUILD_NUMBER 124307
+BRANCH_NAME X-Plane 12.4.3-b4-29478f69
+BRANCH_PATH X-Plane 12.4.3-b4-29478f69
+
+BRANCH RSG
+BRANCH_BUILD_NUMBER 120900
+BRANCH_NAME X-Plane 12.0.9-dev-1
+BRANCH_PATH X-Plane 12.0.9-dev-1
+
+ENDOFLIST
