@@ -4,6 +4,25 @@
 
 This document captures the current PATD display and instrument configuration as observed from Windows, X-Plane 12 preference files, and RealSimGear plugin configuration. It is the baseline specification for troubleshooting and future repeatable setup.
 
+## Manual setup checkpoint (2026-06-06)
+
+Operator-confirmed state during live setup session:
+
+- All instrument displays are currently on the correct screens.
+- All three exterior monitors are assigned as external visuals.
+- Exterior perspective alignment is still in progress and needs further tuning for a seamless wraparound view.
+
+Saved checkpoint artifacts:
+
+- Snapshot directory: `.oden-aero-patd/runs/20260606T210603Z`
+- Summary report: `.oden-aero-patd/runs/20260606T210603Z/report.md`
+- Raw snapshot: `.oden-aero-patd/runs/20260606T210603Z/snapshot.json`
+
+Notes from this checkpoint:
+
+- Current geometry values in the snapshot show left/right outside-view offsets still at 0.0, which matches the operator note that perspective blending is not finished yet.
+- This checkpoint should be treated as the temporary baseline for instrument placement while outside-view perspective tuning continues.
+
 ## Intended physical layout
 
 Reported target layout:
