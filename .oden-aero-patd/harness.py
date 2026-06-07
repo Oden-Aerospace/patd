@@ -23,11 +23,15 @@ WINDOW_POSITIONS = REPO_ROOT / "Output" / "preferences" / "X-Plane Window Positi
 SCREEN_RES_PREFS = REPO_ROOT / "Output" / "preferences" / "X-Plane Screen Res.prf"
 ANALYTICS_PREFS = REPO_ROOT / "Output" / "preferences" / "X-Plane Analytics.prf"
 MISC_PREFS = REPO_ROOT / "Output" / "preferences" / "Miscellaneous.prf"
+FREEFLIGHT_PREFS = REPO_ROOT / "Output" / "preferences" / "Freeflight.prf"
+JOYSTICK_SETTINGS_PREFS = REPO_ROOT / "Output" / "preferences" / "X-Plane Joystick Settings.prf"
 SERVER_LIST_PREFS = REPO_ROOT / "Output" / "preferences" / "server_list_12.txt"
 DEVICE_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "DeviceMapping.ini"
 COMMAND_MAPPING = REPO_ROOT / "Resources" / "plugins" / "RealSimGear" / "CommandMapping.ini"
 MAIN_LOG = REPO_ROOT / "Log.txt"
 ATC_LOG = REPO_ROOT / "Log_ATC.txt"
+DEFAULT_GREMLIN_DIR = Path.home() / "OneDrive" / "Documents" / "FlightSim" / "Joystick" / "JoystickGremlin.R14"
+DEFAULT_GREMLIN_USER_DIR = Path.home() / "joystick gremlin"
 MONITOR_RESET_PREFS = [WINDOW_POSITIONS, SCREEN_RES_PREFS]
 BASELINE_PREFS = [WINDOW_POSITIONS, SCREEN_RES_PREFS, ANALYTICS_PREFS, MISC_PREFS, SERVER_LIST_PREFS]
 
@@ -170,6 +174,120 @@ def parse_device_mapping(path: Path) -> list[dict]:
         entry["section"] = section
         devices.append(entry)
     return devices
+
+
+def resolve_current_aircraft_path() -> str | None:
+    freeflight_text = read_text(FREEFLIGHT_PREFS)
+    match = re.search(r"^_aircraft\s+(.+)\s*$", freeflight_text, flags=re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+
+    log_text = read_text(MAIN_LOG)
+    log_matches = re.findall(r"I/ACF:\s+Loading airplane number 0 with\s+([^\r\n]+)", log_text)
+    if log_matches:
+        return log_matches[-1].strip()
+    return None
+
+
+def parse_joystick_names(path: Path) -> list[str]:
+    names: list[str] = []
+    for line in read_text(path).splitlines():
+        line = line.strip()
+        if not line.startswith("_joy_name"):
+            continue
+        parts = line.split(" ", maxsplit=1)
+        if len(parts) != 2:
+            continue
+        names.append(parts[1].strip())
+    return names
+
+
+def parse_joystick_values(path: Path, prefix: str) -> list[str]:
+    values: list[str] = []
+    for line in read_text(path).splitlines():
+        line = line.strip()
+        if not line.startswith(prefix):
+            continue
+        parts = line.split(" ", maxsplit=1)
+        if len(parts) != 2:
+            continue
+        values.append(parts[1].strip())
+    return values
+
+
+def resolve_existing_path(path_text: str | None) -> Path | None:
+    if not path_text:
+        return None
+    candidate = Path(path_text).expanduser()
+    return candidate if candidate.exists() else None
+
+
+def detect_gremlin_processes() -> list[dict]:
+    command = (
+        "$procs = Get-Process -Name 'joystick_gremlin' -ErrorAction SilentlyContinue; "
+        "if ($procs) { "
+        "  $procs | Select-Object Id,ProcessName,Path | ConvertTo-Json -Compress "
+        "}"
+    )
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-Command", command],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return []
+    data = json.loads(result.stdout)
+    if isinstance(data, dict):
+        return [data]
+    return data
+
+
+def parse_gremlin_config_profile(config_path: Path) -> str | None:
+    if not config_path.exists():
+        return None
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8", errors="replace"))
+    except json.JSONDecodeError:
+        return None
+    profile = data.get("last_profile")
+    if isinstance(profile, str) and profile.strip():
+        return profile.strip()
+    return None
+
+
+def collect_virtual_joystick_state(gremlin_dir: Path | None, gremlin_user_dir: Path | None, log_text: str) -> dict:
+    joystick_names = parse_joystick_names(JOYSTICK_SETTINGS_PREFS)
+    joystick_ids = parse_joystick_values(JOYSTICK_SETTINGS_PREFS, "_joy_unique_id")
+    joystick_locations = parse_joystick_values(JOYSTICK_SETTINGS_PREFS, "_joy_location")
+    vjoy_names = [name for name in joystick_names if "vjoy" in name.lower()]
+    vjoy_ids = [item for item in joystick_ids if "VID:4660PID:48813" in item]
+    vjoy_locations = [item for item in joystick_locations if "hidclass&col" in item.lower()]
+    gremlin_processes = detect_gremlin_processes()
+
+    config_json = (gremlin_user_dir / "config.json") if gremlin_user_dir else None
+    configuration_json = (gremlin_user_dir / "configuration.json") if gremlin_user_dir else None
+    active_profile_text = parse_gremlin_config_profile(config_json) if config_json is not None else None
+    active_profile_path = resolve_existing_path(active_profile_text)
+
+    return {
+        "gremlin_dir": str(gremlin_dir) if gremlin_dir is not None else None,
+        "gremlin_user_dir": str(gremlin_user_dir) if gremlin_user_dir is not None else None,
+        "gremlin_running": bool(gremlin_processes),
+        "gremlin_processes": gremlin_processes,
+        "gremlin_config_json": str(config_json) if config_json is not None else None,
+        "gremlin_configuration_json": str(configuration_json) if configuration_json is not None else None,
+        "active_profile": active_profile_text,
+        "active_profile_exists": active_profile_path is not None,
+        "joystick_names": joystick_names,
+        "joystick_unique_ids": joystick_ids,
+        "joystick_locations": joystick_locations,
+        "vjoy_devices_in_prefs": vjoy_names,
+        "vjoy_unique_ids": vjoy_ids,
+        "vjoy_locations": vjoy_locations,
+        "vjoy_activated": bool(vjoy_names or vjoy_ids or vjoy_locations),
+        "vjoy_registered_in_log": "REGISTER Joystick device: vJoy - Virtual Joystick" in log_text,
+    }
 
 
 def resolve_loaded_situation_path() -> Path | None:
@@ -326,6 +444,39 @@ def validate_state(spec: dict, window_state: dict, devices: list[dict], log_stat
     else:
         add_result(findings, "pass", "crash_detected", "No crash marker found in X-Plane log.")
 
+    return findings
+
+
+def validate_virtual_joystick_state(state: dict) -> list[dict]:
+    findings: list[dict] = []
+    if state["gremlin_running"]:
+        add_result(findings, "pass", "gremlin_running", "Joystick Gremlin is running.")
+    else:
+        add_result(findings, "fail", "gremlin_running", "Joystick Gremlin process is not running.")
+
+    if state["active_profile"]:
+        if state["active_profile_exists"]:
+            add_result(findings, "pass", "gremlin_active_profile", f"Active Gremlin profile detected: {state['active_profile']}")
+        else:
+            add_result(findings, "fail", "gremlin_active_profile", f"Configured Gremlin profile not found on disk: {state['active_profile']}")
+    else:
+        add_result(findings, "fail", "gremlin_active_profile", "No active Gremlin profile is recorded in config.json.")
+
+    if state["vjoy_activated"]:
+        signal_count = len(state["vjoy_devices_in_prefs"]) + len(state["vjoy_unique_ids"]) + len(state["vjoy_locations"])
+        add_result(
+            findings,
+            "pass",
+            "vjoy_activated",
+            f"vJoy appears activated in X-Plane joystick prefs ({signal_count} detection signals).",
+        )
+    else:
+        add_result(findings, "fail", "vjoy_activated", "No vJoy device was found in X-Plane joystick preferences.")
+
+    if state["vjoy_registered_in_log"]:
+        add_result(findings, "pass", "vjoy_registered_in_log", "X-Plane log shows vJoy registration.")
+    else:
+        add_result(findings, "fail", "vjoy_registered_in_log", "X-Plane log does not show vJoy registration.")
     return findings
 
 
@@ -607,17 +758,20 @@ def copy_if_exists(source: Path, destination: Path) -> None:
         shutil.copy2(source, destination)
 
 
-def snapshot(run_dir: Path) -> dict:
+def snapshot(run_dir: Path, gremlin_dir: Path | None = None, gremlin_user_dir: Path | None = None) -> dict:
     spec = load_spec()
     window_state = parse_window_positions(WINDOW_POSITIONS)
     devices = parse_device_mapping(DEVICE_MAPPING)
     displays = collect_windows_displays()
     log_text = read_text(MAIN_LOG)
     atc_log_text = read_text(ATC_LOG)
+    aircraft_path = resolve_current_aircraft_path()
+    virtual_joystick = collect_virtual_joystick_state(gremlin_dir, gremlin_user_dir, log_text)
     log_state = scan_log_signals(log_text, spec)
     findings = []
     findings.extend(validate_windows_inventory(spec, displays))
     findings.extend(validate_state(spec, window_state, devices, log_state))
+    findings.extend(validate_virtual_joystick_state(virtual_joystick))
 
     artifacts_dir = run_dir / "artifacts"
     copy_if_exists(WINDOW_POSITIONS, artifacts_dir / WINDOW_POSITIONS.name)
@@ -626,9 +780,22 @@ def snapshot(run_dir: Path) -> dict:
     copy_if_exists(SCREEN_RES_PREFS, artifacts_dir / SCREEN_RES_PREFS.name)
     copy_if_exists(ANALYTICS_PREFS, artifacts_dir / ANALYTICS_PREFS.name)
     copy_if_exists(MISC_PREFS, artifacts_dir / MISC_PREFS.name)
+    copy_if_exists(FREEFLIGHT_PREFS, artifacts_dir / FREEFLIGHT_PREFS.name)
+    copy_if_exists(JOYSTICK_SETTINGS_PREFS, artifacts_dir / JOYSTICK_SETTINGS_PREFS.name)
     copy_if_exists(SERVER_LIST_PREFS, artifacts_dir / SERVER_LIST_PREFS.name)
     copy_if_exists(MAIN_LOG, artifacts_dir / MAIN_LOG.name)
     copy_if_exists(ATC_LOG, artifacts_dir / ATC_LOG.name)
+    if gremlin_user_dir is not None:
+        copy_if_exists(gremlin_user_dir / "config.json", artifacts_dir / "gremlin-config.json")
+        copy_if_exists(gremlin_user_dir / "configuration.json", artifacts_dir / "gremlin-configuration.json")
+        copy_if_exists(gremlin_user_dir / "user.log", artifacts_dir / "gremlin-user.log")
+        copy_if_exists(gremlin_user_dir / "system.log", artifacts_dir / "gremlin-system.log")
+        active_profile = resolve_existing_path(virtual_joystick["active_profile"])
+        if active_profile is not None:
+            copy_if_exists(active_profile, artifacts_dir / active_profile.name)
+    if gremlin_dir is not None:
+        copy_if_exists(gremlin_dir / "dill_debug.log", artifacts_dir / "gremlin-dill_debug.log")
+
     loaded_situation = resolve_loaded_situation_path()
     loaded_situation_artifact = None
     if loaded_situation is not None:
@@ -639,7 +806,9 @@ def snapshot(run_dir: Path) -> dict:
         "timestamp": utc_stamp(),
         "windows_displays": displays,
         "window_positions": window_state,
+        "aircraft": aircraft_path,
         "device_mapping": devices,
+        "virtual_joystick": virtual_joystick,
         "log_state": log_state,
         "findings": findings,
         "loaded_situation": str(loaded_situation) if loaded_situation is not None else None,
@@ -766,7 +935,9 @@ def launch_xplane(executable: Path, duration: int, leave_running: bool, manual_w
 def command_snapshot(_: argparse.Namespace) -> int:
     run_dir = RUNS_DIR / utc_stamp()
     run_dir.mkdir(parents=True, exist_ok=True)
-    state = snapshot(run_dir)
+    gremlin_dir = resolve_existing_path(_.gremlin_dir)
+    gremlin_user_dir = resolve_existing_path(_.gremlin_user_dir)
+    state = snapshot(run_dir, gremlin_dir=gremlin_dir, gremlin_user_dir=gremlin_user_dir)
     write_report(run_dir, state, launch_result=None)
     print(f"Snapshot complete: {run_dir}")
     return 0
@@ -782,7 +953,9 @@ def command_run(args: argparse.Namespace) -> int:
     launch_result: dict | None = None
     try:
         launch_result = launch_xplane(Path(args.xplane_exe), args.duration, args.leave_running, args.manual_wait)
-        state.update(snapshot(run_dir))
+        gremlin_dir = resolve_existing_path(args.gremlin_dir)
+        gremlin_user_dir = resolve_existing_path(args.gremlin_user_dir)
+        state.update(snapshot(run_dir, gremlin_dir=gremlin_dir, gremlin_user_dir=gremlin_user_dir))
     except Exception as exc:
         state["run_error"] = repr(exc)
     finally:
@@ -810,7 +983,9 @@ def command_start_from_baseline(args: argparse.Namespace) -> int:
     launch_result: dict | None = None
     try:
         launch_result = launch_xplane(Path(args.xplane_exe), args.duration, args.leave_running, args.manual_wait)
-        state.update(snapshot(run_dir))
+        gremlin_dir = resolve_existing_path(args.gremlin_dir)
+        gremlin_user_dir = resolve_existing_path(args.gremlin_user_dir)
+        state.update(snapshot(run_dir, gremlin_dir=gremlin_dir, gremlin_user_dir=gremlin_user_dir))
     except Exception as exc:
         state["run_error"] = repr(exc)
     finally:
@@ -831,6 +1006,8 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     snapshot_parser = subparsers.add_parser("snapshot", help="Capture the current PATD configuration state")
+    snapshot_parser.add_argument("--gremlin-dir", default=str(DEFAULT_GREMLIN_DIR), help="Path to Joystick Gremlin portable folder")
+    snapshot_parser.add_argument("--gremlin-user-dir", default=str(DEFAULT_GREMLIN_USER_DIR), help="Path to Joystick Gremlin user config folder")
     snapshot_parser.set_defaults(func=command_snapshot)
 
     draft_parser = subparsers.add_parser(
@@ -856,6 +1033,8 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--duration", type=int, default=45, help="Seconds to wait after the manual interaction window before capturing the snapshot")
     run_parser.add_argument("--manual-wait", type=int, default=30, help="Seconds to leave X-Plane alone at startup so the operator can dismiss dialogs and position windows")
     run_parser.add_argument("--leave-running", action="store_true", help="Do not terminate X-Plane after the wait period")
+    run_parser.add_argument("--gremlin-dir", default=str(DEFAULT_GREMLIN_DIR), help="Path to Joystick Gremlin portable folder")
+    run_parser.add_argument("--gremlin-user-dir", default=str(DEFAULT_GREMLIN_USER_DIR), help="Path to Joystick Gremlin user config folder")
     run_parser.set_defaults(func=command_run)
 
     baseline_run_parser = subparsers.add_parser(
@@ -867,6 +1046,8 @@ def build_parser() -> argparse.ArgumentParser:
     baseline_run_parser.add_argument("--duration", type=int, default=45, help="Seconds to wait after the manual interaction window before capturing the snapshot")
     baseline_run_parser.add_argument("--manual-wait", type=int, default=30, help="Seconds to leave X-Plane alone at startup so the operator can dismiss dialogs and position windows")
     baseline_run_parser.add_argument("--leave-running", action="store_true", help="Do not terminate X-Plane after the wait period")
+    baseline_run_parser.add_argument("--gremlin-dir", default=str(DEFAULT_GREMLIN_DIR), help="Path to Joystick Gremlin portable folder")
+    baseline_run_parser.add_argument("--gremlin-user-dir", default=str(DEFAULT_GREMLIN_USER_DIR), help="Path to Joystick Gremlin user config folder")
     baseline_run_parser.set_defaults(func=command_start_from_baseline)
 
     return parser

@@ -12,7 +12,9 @@ This directory contains the reusable PATD specification, issue tracker, and an a
 - launches X-Plane
 - captures current Windows display inventory
 - snapshots key X-Plane and RealSimGear configuration files
+- captures current aircraft and loaded situation context
 - scans logs for known crash and configuration error patterns
+- verifies Joystick Gremlin runtime state and vJoy activation signals
 - validates the live configuration against a PATD spec with monitor-role checks
 - can draft a safe monitor-reset plan without overwriting the live X-Plane config
 - writes per-run artifacts under `.oden-aero-patd/runs/`
@@ -29,6 +31,18 @@ Run a snapshot without launching X-Plane:
 
 ```powershell
 .\.oden-aero-patd\.venv\Scripts\python.exe .\.oden-aero-patd\harness.py snapshot
+```
+
+Run snapshot with explicit Joystick Gremlin paths:
+
+```powershell
+.\.oden-aero-patd\.venv\Scripts\python.exe .\.oden-aero-patd\harness.py snapshot --gremlin-dir "$env:USERPROFILE\OneDrive\Documents\FlightSim\Joystick\JoystickGremlin.R14" --gremlin-user-dir "$env:USERPROFILE\joystick gremlin"
+```
+
+Windows shortcut command:
+
+```powershell
+.\.oden-aero-patd\snapshot-current-config.cmd
 ```
 
 Draft a safe monitor-reset plan from the current preferences:

@@ -5406,8 +5406,8 @@ _joy_BUTN_use189 sim/none/none
 _joy_BUTN_use190 sim/flight_controls/landing_gear_up
 _joy_BUTN_use191 sim/flight_controls/landing_gear_down
 _joy_BUTN_use192 sim/none/none
-_joy_BUTN_use193 sim/flight_controls/brakes_max
-_joy_BUTN_use194 sim/none/none
+_joy_BUTN_use193 sim/flight_controls/park_brake_set
+_joy_BUTN_use194 sim/flight_controls/park_brake_release
 _joy_BUTN_use195 sim/none/none
 _joy_BUTN_use196 sim/none/none
 _joy_BUTN_use197 sim/none/none
